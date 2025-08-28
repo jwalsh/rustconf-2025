@@ -2,8 +2,8 @@
 
 ## Conference Overview
 
-**Date:** September 2-4, 2025  
-**Location:** Hyatt Regency, Montreal, Canada  
+**Date:** September 2-5, 2025  
+**Location:** Seattle, Washington  
 **Website:** https://rustconf.com/
 
 RustConf 2025 is the premier gathering for Rust developers, featuring keynotes from industry leaders, technical deep-dives, workshops, and networking opportunities. The conference brings together the Rust community to share knowledge, best practices, and innovations in systems programming, web assembly, embedded systems, and more.
