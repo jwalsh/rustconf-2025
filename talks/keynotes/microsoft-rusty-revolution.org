@@ -1,0 +1,5 @@
+#+TITLE: From Blue Screens to Orange Crabs: Microsoft's Rusty Revolution
+#+SPEAKER: Mark Russinovich
+#+DATE: 2025-09-03 09:15
+#+TRACK: Keynote
+#+TAGS: adoption enterprise microsoft

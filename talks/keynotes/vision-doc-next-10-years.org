@@ -1,0 +1,5 @@
+#+TITLE: Vision Doc: The Next 10 Years of Rust
+#+SPEAKER: Nicholas Matsakis, Jack Huey
+#+DATE: 2025-09-04 16:45
+#+TRACK: Keynote
+#+TAGS: future roadmap

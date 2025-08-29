@@ -1,0 +1,3 @@
+#+TITLE: Async Design Patterns in Rust
+#+DATE: 2025-09-02
+#+COST: $375

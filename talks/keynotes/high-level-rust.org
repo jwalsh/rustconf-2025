@@ -1,0 +1,5 @@
+#+TITLE: High-Level Rust and the Future of Application Development
+#+SPEAKER: Jonathan Kelley
+#+DATE: 2025-09-03 17:00
+#+TRACK: Keynote
+#+TAGS: dioxus application-development
