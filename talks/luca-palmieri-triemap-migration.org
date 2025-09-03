@@ -1,0 +1,425 @@
+#+TITLE: Rewrite, Optimize, Repeat: Porting a TrieMap from C to Rust
+#+SPEAKER: Luca Palmieri
+#+DATE: 2025-09-03 13:40
+#+LOCATION: Regency B (Floor 7)
+#+TAGS: c-migration redis performance optimization data-structures
+#+OPTIONS: toc:2 num:t
+
+* Talk Overview
+
+In this talk, you'll learn about an experience porting a battle-tested C TrieMap implementation to Rust, as part of a larger C-to-Rust migration of Redis' search capabilities. We'll walk through the missteps, the initial design we implemented and then discarded, the profiling rabbit holes, and the eventual breakthroughs that led to success.
+
+* Speaker Background
+
+** Luca Palmieri
+- Principal Engineering Consultant at Mainmatter
+- Author of "Zero to Production in Rust"
+- Author of "100 Exercises To Learn Rust"
+- Former AWS and TrueLayer engineer
+- Active in Rust community since 2018
+- Co-organizer of Rust London User Group
+
+** Contact
+- Website: [[https://www.lpalmieri.com]]
+- GitHub: [[https://github.com/LukeMathWalker]]
+- Twitter/X: @algo_luca
+
+* Zero to Production in Rust - The Book
+
+** Overview
+- 600 pages of hands-on backend development
+- Build a fully functional email newsletter API
+- Cover testing, error handling, authentication, observability
+- All code available on GitHub
+
+** Key Topics Covered
+1. Project setup and tooling
+2. Database integration (PostgreSQL/SQLx)
+3. Error handling strategies
+4. Authentication & authorization
+5. Structured logging and observability
+6. Testing strategies (unit, integration, E2E)
+7. CI/CD pipelines
+8. Deployment patterns
+9. Performance optimization
+10. Security best practices
+
+** Get the Book
+- [[https://www.zero2prod.com][Official Website]]
+- [[https://github.com/LukeMathWalker/zero-to-production][GitHub Repository]]
+- Available on Amazon
+
+* TrieMap Migration Context
+
+** Redis Query Engine (RediSearch)
+- Now integral to Redis 8+
+- No longer requires separate installation
+- Provides secondary indexing, full-text search, vector similarity
+- Critical performance component
+
+** Why Migrate from C to Rust?
+- Memory safety guarantees
+- Prevent entire classes of bugs
+- Maintainability improvements
+- Performance (when done right)
+- Modern tooling ecosystem
+
+* Expected Talk Content
+
+** The Journey
+
+*** 1. Initial Assessment
+- Understanding the C implementation
+- Performance baseline establishment
+- Critical path identification
+- Memory layout analysis
+
+*** 2. First Attempt (Failed)
+- Direct translation approach
+- Why it didn't work
+- Performance regressions
+- Lessons learned
+
+*** 3. Profiling Deep Dive
+- Tools used (perf, flamegraph, criterion)
+- Surprising bottlenecks
+- Cache misses and memory patterns
+- Allocation overhead
+
+*** 4. Breakthrough Design
+- Rust-idiomatic approach
+- Leveraging ownership model
+- Zero-copy optimizations
+- Custom allocators
+
+*** 5. Final Optimization
+- SIMD usage
+- Unsafe blocks (when necessary)
+- Benchmarking results
+- Production deployment
+
+* TrieMap Data Structure
+
+** What is a TrieMap?
+#+BEGIN_SRC rust
+// Conceptual TrieMap structure
+pub struct TrieMap<K, V> {
+    root: Option<Box<Node<K, V>>>,
+}
+
+struct Node<K, V> {
+    key_part: K,
+    value: Option<V>,
+    children: Vec<Box<Node<K, V>>>,
+}
+#+END_SRC
+
+** Use Cases in Redis
+- Prefix matching
+- Auto-completion
+- Full-text indexing
+- Efficient string storage
+
+** Performance Characteristics
+| Operation | Complexity | Notes |
+|-----------+------------+-------|
+| Insert | O(m) | m = key length |
+| Search | O(m) | Prefix matching included |
+| Delete | O(m) | May require restructuring |
+| Space | O(n*m) | n = keys, m = avg length |
+
+* Migration Patterns
+
+** Pattern 1: Incremental Migration
+#+BEGIN_SRC rust
+// Wrapper approach for gradual migration
+pub struct HybridTrieMap {
+    rust_impl: Option<RustTrieMap>,
+    c_impl: *mut CTrieMap,
+}
+
+impl HybridTrieMap {
+    pub fn insert(&mut self, key: &str, value: Value) {
+        // Use Rust impl if available, fallback to C
+        if let Some(rust) = &mut self.rust_impl {
+            rust.insert(key, value);
+        } else {
+            unsafe { c_triemap_insert(self.c_impl, key, value) }
+        }
+    }
+}
+#+END_SRC
+
+** Pattern 2: FFI Bridge
+#+BEGIN_SRC rust
+use std::os::raw::{c_char, c_void};
+
+#[repr(C)]
+pub struct CTrieMap {
+    _private: [u8; 0],
+}
+
+extern "C" {
+    fn triemap_new() -> *mut CTrieMap;
+    fn triemap_insert(map: *mut CTrieMap, key: *const c_char, value: *mut c_void);
+    fn triemap_search(map: *const CTrieMap, key: *const c_char) -> *mut c_void;
+    fn triemap_free(map: *mut CTrieMap);
+}
+#+END_SRC
+
+** Pattern 3: Rust-Native Implementation
+#+BEGIN_SRC rust
+pub struct RustTrieMap<V> {
+    nodes: Arena<Node<V>>,
+    root: NodeId,
+}
+
+impl<V> RustTrieMap<V> {
+    pub fn insert(&mut self, key: &[u8], value: V) {
+        // Rust-idiomatic implementation
+        let mut current = self.root;
+        for &byte in key {
+            current = self.ensure_child(current, byte);
+        }
+        self.nodes[current].value = Some(value);
+    }
+}
+#+END_SRC
+
+* Performance Optimization Techniques
+
+** 1. Memory Layout Optimization
+#+BEGIN_SRC rust
+// Cache-friendly node structure
+#[repr(C, align(64))] // Cache line alignment
+struct OptimizedNode<V> {
+    // Hot data together
+    value: Option<V>,
+    child_count: u8,
+    // Children array inline for small counts
+    inline_children: [Option<(u8, NodeId)>; 4],
+    // Overflow for larger child sets
+    overflow_children: Option<Box<Vec<(u8, NodeId)>>>,
+}
+#+END_SRC
+
+** 2. Custom Allocators
+#+BEGIN_SRC rust
+use bumpalo::Bump;
+
+pub struct ArenaTrieMap<'a, V> {
+    arena: &'a Bump,
+    root: &'a Node<'a, V>,
+}
+
+impl<'a, V> ArenaTrieMap<'a, V> {
+    pub fn new(arena: &'a Bump) -> Self {
+        Self {
+            arena,
+            root: arena.alloc(Node::default()),
+        }
+    }
+}
+#+END_SRC
+
+** 3. SIMD String Comparison
+#+BEGIN_SRC rust
+#[cfg(target_arch = "x86_64")]
+use std::arch::x86_64::*;
+
+unsafe fn simd_prefix_match(needle: &[u8], haystack: &[u8]) -> bool {
+    if needle.len() > haystack.len() {
+        return false;
+    }
+    
+    let chunks = needle.chunks_exact(16);
+    let remainder = chunks.remainder();
+    
+    for (i, chunk) in chunks.enumerate() {
+        let needle_vec = _mm_loadu_si128(chunk.as_ptr() as *const __m128i);
+        let haystack_vec = _mm_loadu_si128(
+            haystack[i * 16..].as_ptr() as *const __m128i
+        );
+        
+        let cmp = _mm_cmpeq_epi8(needle_vec, haystack_vec);
+        if _mm_movemask_epi8(cmp) != 0xFFFF {
+            return false;
+        }
+    }
+    
+    remainder == &haystack[needle.len() - remainder.len()..]
+}
+#+END_SRC
+
+* Profiling Tools & Techniques
+
+** Essential Tools
+#+BEGIN_SRC bash
+# CPU profiling
+cargo install flamegraph
+cargo flamegraph --bench triemap_bench
+
+# Memory profiling
+cargo install dhat
+cargo build --release --features dhat-heap
+./target/release/my_app
+
+# Benchmarking
+cargo bench -- --save-baseline before
+# Make changes
+cargo bench -- --baseline before
+#+END_SRC
+
+** Criterion Benchmarks
+#+BEGIN_SRC rust
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
+
+fn bench_triemap(c: &mut Criterion) {
+    let mut group = c.benchmark_group("triemap");
+    
+    // Test data
+    let words = load_dictionary();
+    
+    group.bench_function("insert", |b| {
+        b.iter_batched(
+            || RustTrieMap::new(),
+            |mut map| {
+                for word in &words {
+                    map.insert(black_box(word), ());
+                }
+            },
+            criterion::BatchSize::SmallInput,
+        )
+    });
+    
+    group.bench_function("search_existing", |b| {
+        let map = build_map(&words);
+        b.iter(|| {
+            for word in &words[..100] {
+                black_box(map.search(black_box(word)));
+            }
+        })
+    });
+    
+    group.finish();
+}
+
+criterion_group!(benches, bench_triemap);
+criterion_main!(benches);
+#+END_SRC
+
+* Testing Strategy
+
+** Property-Based Testing
+#+BEGIN_SRC rust
+use proptest::prelude::*;
+
+proptest! {
+    #[test]
+    fn triemap_invariants(
+        operations in prop::collection::vec(operation_strategy(), 0..1000)
+    ) {
+        let mut rust_map = RustTrieMap::new();
+        let mut reference = HashMap::new();
+        
+        for op in operations {
+            match op {
+                Op::Insert(k, v) => {
+                    rust_map.insert(&k, v);
+                    reference.insert(k, v);
+                }
+                Op::Remove(k) => {
+                    rust_map.remove(&k);
+                    reference.remove(&k);
+                }
+                Op::Search(k) => {
+                    assert_eq!(rust_map.search(&k), reference.get(&k));
+                }
+            }
+        }
+        
+        // Verify all keys match
+        for (k, v) in &reference {
+            assert_eq!(rust_map.search(k), Some(v));
+        }
+    }
+}
+#+END_SRC
+
+** Fuzzing
+#+BEGIN_SRC rust
+#![no_main]
+use libfuzzer_sys::fuzz_target;
+
+fuzz_target!(|data: &[u8]| {
+    if let Ok(s) = std::str::from_utf8(data) {
+        let mut map = RustTrieMap::new();
+        
+        // Split into operations
+        for line in s.lines() {
+            if line.starts_with("+") {
+                map.insert(&line[1..], ());
+            } else if line.starts_with("-") {
+                map.remove(&line[1..]);
+            } else {
+                map.search(line);
+            }
+        }
+    }
+});
+#+END_SRC
+
+* Key Takeaways (Expected)
+
+1. **Direct translation rarely works** - Rust idioms differ from C
+2. **Profile early and often** - Assumptions about performance are often wrong
+3. **Memory layout matters** - Cache-friendly structures crucial
+4. **Unsafe is sometimes necessary** - But minimize and encapsulate
+5. **Incremental migration** - Maintain compatibility during transition
+6. **Testing is critical** - Property tests, fuzzing, benchmarks
+
+* Resources & Further Reading
+
+** Books & Courses
+- [[https://www.zero2prod.com][Zero to Production in Rust]] - Luca's comprehensive guide
+- [[https://github.com/LukeMathWalker/100-exercises-to-learn-rust][100 Exercises to Learn Rust]] - Hands-on learning
+- [[https://doc.rust-lang.org/nomicon/][The Rustonomicon]] - Advanced unsafe Rust
+
+** Redis & RediSearch
+- [[https://github.com/RediSearch/RediSearch][RediSearch GitHub]]
+- [[https://redis.io/docs/][Redis Documentation]]
+- [[https://redis.io/learn/develop/rust][Rust and Redis Guide]]
+
+** Performance & Profiling
+- [[https://nnethercote.github.io/perf-book/][The Rust Performance Book]]
+- [[https://github.com/flamegraph-rs/flamegraph][Flamegraph for Rust]]
+- [[https://github.com/bheisler/criterion.rs][Criterion Benchmarking]]
+
+** C to Rust Migration
+- [[https://immunant.com/blog/2020/01/quiche/][C2Rust Transpiler]]
+- [[https://github.com/jameysharp/corrode][Corrode - C to Rust translator]]
+- [[https://doc.rust-lang.org/nomicon/ffi.html][FFI Guide]]
+
+* Questions for Luca
+
+1. What was the final performance comparison (C vs Rust)?
+2. How did you handle Redis module API integration?
+3. What unsafe patterns were unavoidable?
+4. How long did the migration take?
+5. Would you use c2rust or manual translation?
+6. How did you ensure correctness during migration?
+7. What Redis-specific optimizations were needed?
+8. How do you test compatibility with existing data?
+
+* Action Items
+
+- [ ] Review TrieMap implementation patterns
+- [ ] Study Redis module development in Rust
+- [ ] Benchmark our own C code for migration candidates
+- [ ] Read "Zero to Production in Rust"
+- [ ] Set up profiling infrastructure
+- [ ] Identify migration candidates in our codebase
+
+---
+
+*Follow Luca:* [[https://twitter.com/algo_luca][@algo_luca]] | [[https://github.com/LukeMathWalker][GitHub]] | [[https://www.lpalmieri.com][Website]]

@@ -94,7 +94,7 @@ Memory safety everywhere with both Carbon and Rust
 - goingforbrooke
 - Adopting Rust in challenging environments
 
-**** TODO [#A] Track 2: "A Hitchhiker's Guide to Adopting Rust at Your Company" :ATTENDING:
+**** DONE [#A] Track 2: "A Hitchhiker's Guide to Adopting Rust at Your Company" :ATTENDING:
 - Speaker: Russell Cohen, AWS
 - Location: Regency A (Floor 7) | Virtual: Track 2 Stream
 - Topics: Adoption strategies, case studies, organizational change
@@ -156,7 +156,7 @@ gh repo clone google/comprehensive-rust
 - 5-minute community presentations
 - Topics: Tools, libraries, experiences
 
-*** TODO 4:20 - 5:00 PM - Panel Discussion
+*** 4:20 - 5:00 PM - Panel Discussion
 *"The Future of Rust"*
 - Industry leaders discuss Rust's trajectory
 
@@ -170,8 +170,6 @@ gh repo clone google/comprehensive-rust
 
 *** 5:30 - 7:00 PM - 🍻 Welcome Reception
 - Networking, sponsor booths, refreshments
-
------
 
 * Thursday, September 4 - Conference Day 2
 
