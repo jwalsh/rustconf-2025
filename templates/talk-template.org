@@ -1,0 +1,15 @@
+#+TITLE: [Talk Title]
+#+SPEAKER: [Speaker Name]
+#+DATE: [Date]
+#+TRACK: [1/2/Keynote]
+#+TAGS: [relevant tags]
+
+* Summary
+
+* Key Points
+
+* Technical Details
+
+* Questions & Follow-up
+
+* Resources

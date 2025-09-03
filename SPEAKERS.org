@@ -1,0 +1,136 @@
+#+TITLE: RustConf 2025 - Speakers
+#+OPTIONS: toc:2 num:nil
+
+* Keynote Speakers
+
+** Mark Russinovich
+:PROPERTIES:
+:TITLE: CTO, Microsoft Azure
+:TALK: From Blue Screens to Orange Crabs: Microsoft's Rusty Revolution
+:END:
+
+Mark Russinovich is the CTO of Microsoft Azure and a renowned systems software expert. He has been instrumental in Microsoft's adoption of Rust for critical systems infrastructure.
+
+** Jeremy Soller
+:PROPERTIES:
+:TITLE: Creator of Redox OS
+:TALK: 10 Years of Redox OS and Rust
+:END:
+
+Jeremy Soller is the creator and lead developer of Redox OS, a Unix-like operating system written entirely in Rust. He has been pioneering OS development in Rust since 2015.
+
+* Marquee Speakers
+
+** Nathaniel Simard
+:PROPERTIES:
+:TITLE: Creator of Burn Framework
+:TALK: Rust for AI & Accelerated Computing
+:END:
+
+Nathaniel is the author of Burn, a comprehensive deep learning framework built entirely in Rust, focusing on flexibility, performance, and portability.
+
+** Chandler Carruth
+:PROPERTIES:
+:COMPANY: Google
+:TALK: Memory Safety Everywhere with Both Rust and Carbon
+:END:
+
+Chandler Carruth is a principal engineer at Google, leading the Carbon programming language project and working on C++ and Rust interoperability.
+
+** Marco Ieni
+:PROPERTIES:
+:TITLE: Rust Infrastructure Team
+:TALK: How We Made the Rust CI 75% Cheaper
+:END:
+
+Marco is a member of the Rust infrastructure team, focusing on improving build systems and CI/CD pipelines for the Rust project.
+
+* Workshop Instructors
+
+** Alexandru Radovici & Razvan Serban
+:PROPERTIES:
+:WORKSHOP: Rust at The Edge: AI Development, Edge Deployment, Real World Inference
+:END:
+
+Experts in embedded systems and edge computing, bringing years of experience deploying Rust in production IoT and edge AI systems.
+
+** Conrad Ludgate
+:PROPERTIES:
+:WORKSHOP: Async Design Patterns in Rust
+:END:
+
+Async Rust expert and contributor to multiple async ecosystem crates, specializing in production async patterns.
+
+** Aida Getoeva
+:PROPERTIES:
+:COMPANY: Meta
+:WORKSHOP: Async Rust & C++ Interop in Production
+:END:
+
+Software engineer at Meta, working on large-scale systems integration between Rust and C++ codebases.
+
+** Herbert Wolverson
+:PROPERTIES:
+:COMPANY: Ardan Labs
+:WORKSHOP: Async Fundamentals
+:END:
+
+Author of "Hands-on Rust" and educator specializing in making Rust accessible to newcomers.
+
+* Session Speakers
+
+** goingforbrooke
+:PROPERTIES:
+:TALK: Rust Against the Odds
+:END:
+
+Developer advocate focusing on Rust adoption in challenging and resource-constrained environments.
+
+** Russell Cohen
+:PROPERTIES:
+:COMPANY: AWS
+:TALK: A Hitchhiker's Guide to Adopting Rust
+:END:
+
+Principal engineer at AWS, leading Rust SDK development and organizational adoption strategies.
+
+** Alessandro Decina
+:PROPERTIES:
+:COMPANY: Solana
+:TALK: Blazing-Fast Magic Beans: How Solana is building the decentralized Nasdaq
+:END:
+
+Core developer at Solana, working on high-performance blockchain infrastructure in Rust.
+
+** Dr. Rebecca Rumbul
+:PROPERTIES:
+:TITLE: Executive Director, Rust Foundation
+:ROLE: Opening Remarks & Community Session
+:END:
+
+Leading the Rust Foundation's mission to support the Rust programming language and its global community.
+
+* Lightning Talk Speakers
+
+/Lightning talk speakers will be announced closer to the conference date. These 5-minute presentations showcase community projects, tools, and experiences./
+
+* Panel Participants
+
+** "The Future of Rust" Panel
+- Industry leaders from Microsoft, Google, AWS, and Mozilla
+- Rust core team members
+- Community representatives
+
+-----
+
+* Speaker Resources
+
+- [[https://rustconf.com/speakers][Speaker Guide]]
+- [[https://rustconf.com/resources][Presentation Templates]]
+- [[https://www.rust-lang.org/policies/code-of-conduct][Code of Conduct]]
+
+* Contact
+
+For speaker inquiries: [[mailto:speakers@rustconf.com][speakers@rustconf.com]]
+
+/Note: Additional speakers and session details will be updated as they are announced./
