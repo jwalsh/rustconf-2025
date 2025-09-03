@@ -1,0 +1,52 @@
+#+TITLE: Rust for AI & Accelerated Computing
+#+SPEAKER: Nathaniel Simard
+#+DATE: 2025-09-03 10:30
+#+DURATION: 30 minutes
+#+TRACK: Marquee Talk
+#+LOCATION_IN_PERSON: Regency B (Floor 7)
+#+LOCATION_VIRTUAL: Main/Track 1 Stream
+#+TAGS: AI morning-block accelerated-computing burn cubecl
+#+SESSION_TYPE: Morning Block
+
+* Abstract
+
+This talk showcases why Rust is an ideal choice for accelerated computing and AI development. It dives into the design of Burn and CubeCL, demonstrating how Rust's robust type system and ownership model enable flexible, high-performance, and portable solutions for cutting-edge AI applications.
+
+* Key Topics
+
+** Rust for Accelerated Computing
+- Why Rust's memory safety matters for GPU/accelerator programming
+- Zero-cost abstractions in performance-critical code
+- Compile-time guarantees for parallel computing
+
+** Burn Framework Deep Dive
+- Architecture and design principles
+- Type-safe tensor operations
+- Backend abstraction for multiple accelerators
+- Performance optimizations
+
+** CubeCL Overview
+- GPU kernel programming in Rust
+- Cross-platform GPU compute
+- Integration with Burn framework
+
+** Ownership Model Benefits
+- Preventing data races in parallel computation
+- Memory management without garbage collection
+- Safe abstractions over unsafe hardware operations
+
+* Speaker Bio
+
+Nathaniel Simard is the creator of the Burn framework, a comprehensive deep learning framework built entirely in Rust. He focuses on bringing flexibility, performance, and portability to AI development through Rust's powerful type system and ownership model.
+
+* Related Resources
+
+- [[https://burn.dev][Burn Framework]]
+- [[https://github.com/tracel-ai/cubecl][CubeCL Repository]]
+- Previous talks and papers on Rust for AI
+
+* Notes
+
+- Part of the morning block on Day 1 (Wednesday)
+- Follows the opening keynote by Mark Russinovich
+- Precedes Chandler Carruth's talk on Memory Safety

@@ -58,8 +58,10 @@ Dr. Rebecca Rumbul, Rust Foundation Executive Director
 
 *** 10:30 - 11:00 AM - Marquee Talk
 *"Rust for AI & Accelerated Computing"*
-- Nathaniel Simard
-- Building high-performance AI systems with Burn framework
+- Speaker: Nathaniel Simard
+- Location: Regency B (Floor 7) | Virtual: Main/Track 1 Stream
+- Topics: Burn and CubeCL frameworks, type system benefits for AI
+- Demonstrates Rust's advantages for accelerated computing and portable AI solutions
 
 *** 11:05 - 11:35 AM - Marquee Talk
 *"Memory Safety Everywhere with Both Rust and Carbon"*

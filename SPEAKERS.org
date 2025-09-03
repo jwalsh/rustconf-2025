@@ -25,9 +25,11 @@ Jeremy Soller is the creator and lead developer of Redox OS, a Unix-like operati
 :PROPERTIES:
 :TITLE: Creator of Burn Framework
 :TALK: Rust for AI & Accelerated Computing
+:TIME: Wednesday, Sept 3, 10:30-11:00 AM
+:LOCATION: Regency B (Floor 7)
 :END:
 
-Nathaniel is the author of Burn, a comprehensive deep learning framework built entirely in Rust, focusing on flexibility, performance, and portability.
+Nathaniel is the creator of Burn, a comprehensive deep learning framework built entirely in Rust, and CubeCL for GPU compute. His talk showcases why Rust is ideal for accelerated computing and AI development, demonstrating how Rust's robust type system and ownership model enable flexible, high-performance, and portable solutions for cutting-edge AI applications.
 
 ** Chandler Carruth
 :PROPERTIES:
