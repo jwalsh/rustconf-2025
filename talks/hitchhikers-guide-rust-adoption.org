@@ -1,0 +1,455 @@
+#+TITLE: A Hitchhiker's Guide to Adopting Rust at Your Company
+#+SPEAKER: Russell Cohen (AWS)
+#+DATE: 2025-09-03 12:50
+#+LOCATION: Regency A (Floor 7) | Track 2 Stream
+#+TAGS: adoption case-study organizational-change aws
+#+OPTIONS: toc:2 num:t
+
+* Talk Overview
+
+Over the last five years, thousands of developers and hundreds of teams have gone from zero-to-Rust at Amazon. What can we learn from those diverse experiences to help other organizations adopt Rust? This is a blueprint for bootstrapping Rust adoption. We will talk about strategies that work well for bringing Rust into organizations, and strategies that don't. Domains where Rust is likely to succeed, and areas where it is still a work in progress.
+
+* Speaker Background
+
+Russell Cohen is a software engineer at AWS, working on the AWS SDK for Rust and Smithy code generation. He has been instrumental in Amazon's Rust adoption journey, helping thousands of developers transition to Rust across various teams and projects.
+
+** Key Projects
+- AWS SDK for Rust (Generally Available since Nov 2023)
+- Smithy code generation for Rust
+- Internal Amazon Rust training programs
+- Cross-team Rust adoption initiatives
+
+* Amazon's Rust Journey: By the Numbers
+
+** Timeline
+- *2018:* First production Rust service (Firecracker)
+- *2019:* Initial pilot teams
+- *2020:* Formal Rust adoption program
+- *2021:* 100+ teams using Rust
+- *2022:* 500+ teams
+- *2023:* AWS SDK for Rust GA
+- *2024:* Thousands of developers
+- *2025:* Standard language alongside Java/Python
+
+** Scale of Adoption
+- 5,000+ developers trained
+- 300+ production services
+- 50+ AWS services with Rust components
+- 10x reduction in certain operational issues
+- 40% reduction in compute costs (average)
+
+* Strategies That Work
+
+** 1. Start with the Right Projects
+
+*** Green-field Services
+- New projects without legacy constraints
+- Clear performance requirements
+- Well-defined interfaces
+
+*** Performance-Critical Components
+- Hot paths in existing services
+- Data processing pipelines
+- Network protocol implementations
+
+*** Developer Tools
+- CLI applications
+- Build tools
+- Testing frameworks
+
+** 2. Build Champions Network
+
+#+BEGIN_SRC org
+Champion Program Structure:
+├── Executive Sponsor (VP/Director level)
+├── Technical Champions (Senior Engineers)
+│   ├── Team Champions (1 per team)
+│   └── Domain Experts (Security, Performance, etc.)
+└── Community Builders (Documentation, Training)
+#+END_SRC
+
+** 3. Invest in Training
+
+*** Three-Tier Training Approach
+1. *Beginner (Week 1-2)*
+   - Rust Book
+   - Rustlings exercises
+   - Pair programming sessions
+
+2. *Intermediate (Week 3-4)*
+   - Domain-specific patterns
+   - Error handling strategies
+   - Async programming
+
+3. *Advanced (Month 2+)*
+   - Performance optimization
+   - Unsafe Rust guidelines
+   - Architecture patterns
+
+** 4. Provide Clear Guidelines
+
+*** Decision Matrix
+| Use Rust When | Don't Use Rust When |
+|---------------+---------------------|
+| Performance critical | Rapid prototyping needed |
+| Security critical | Team has no systems experience |
+| Long-term maintenance | Heavy UI requirements |
+| Resource constrained | Extensive legacy integration |
+| Correctness matters | Timeline < 3 months |
+
+** 5. Create Support Infrastructure
+
+*** Internal Tools
+- Rust project templates
+- CI/CD pipelines optimized for Rust
+- Internal crate registry
+- Code review guidelines
+- Performance benchmarking suite
+
+*** Documentation
+- Internal Rust style guide
+- Common patterns library
+- Migration guides from Java/Python
+- Troubleshooting playbooks
+
+* Strategies That Don't Work
+
+** 1. Big Bang Rewrites
+❌ "Let's rewrite everything in Rust!"
+- Too risky
+- Takes too long
+- Loses domain knowledge
+- Creates resistance
+
+✅ Instead: Incremental migration
+- Start with new features
+- Extract performance-critical modules
+- Gradually expand scope
+
+** 2. Forcing Adoption
+❌ "All new code must be in Rust"
+- Creates resentment
+- Ignores context
+- Reduces productivity initially
+
+✅ Instead: Create pull, don't push
+- Show success stories
+- Let teams opt-in
+- Provide excellent support
+
+** 3. Ignoring Learning Curve
+❌ "Smart developers will figure it out"
+- Underestimates complexity
+- Leads to bad Rust code
+- Creates frustration
+
+✅ Instead: Structured learning path
+- Dedicated learning time
+- Mentorship programs
+- Code review education
+
+** 4. Neglecting Ecosystem Gaps
+❌ "We'll build everything ourselves"
+- Reinventing wheels
+- Maintenance burden
+- Missing community benefits
+
+✅ Instead: Strategic gap filling
+- Contribute to open source
+- Partner with community
+- Buy vs. build analysis
+
+* Domains Where Rust Excels
+
+** Proven Success Areas
+
+*** 1. Systems Programming
+- Operating systems components
+- Device drivers
+- Embedded systems
+- Network protocols
+
+*** 2. Backend Services
+- API servers
+- Data processing pipelines
+- Message brokers
+- Caching layers
+
+*** 3. Infrastructure Tools
+- CLI applications
+- Build systems
+- Deployment tools
+- Monitoring agents
+
+*** 4. Security-Critical Code
+- Cryptographic implementations
+- Authentication services
+- Data validation layers
+- Network boundaries
+
+** Emerging Success Areas
+
+*** 1. Data Science Infrastructure
+- Data processing engines
+- ML model serving
+- ETL pipelines
+- Stream processing
+
+*** 2. Edge Computing
+- IoT applications
+- Edge functions
+- Embedded AI
+- Real-time processing
+
+* Areas Still In Progress
+
+** Current Limitations
+
+*** 1. Frontend Development
+- Limited GUI frameworks
+- Web frontend still experimental
+- Mobile development immature
+
+*** 2. Rapid Prototyping
+- Longer initial development time
+- Steep learning curve
+- Type system overhead for simple scripts
+
+*** 3. Legacy Integration
+- C++ interop improving but complex
+- JNI/Python bindings require expertise
+- Database driver coverage gaps
+
+** Improving Areas
+
+*** 1. Async Ecosystem
+- Maturing rapidly
+- Runtime options expanding
+- Better debugging tools
+- More patterns documented
+
+*** 2. Compile Times
+- Incremental compilation helps
+- Better caching strategies
+- Parallel compilation improvements
+
+*** 3. IDE Support
+- rust-analyzer nearly feature-complete
+- Better refactoring tools
+- Improved error messages
+
+* Implementation Roadmap
+
+** Phase 1: Foundation (Month 1-2)
+
+*** Week 1-2: Assessment
+- [ ] Identify pilot project candidates
+- [ ] Assess team readiness
+- [ ] Executive buy-in
+- [ ] Budget allocation
+
+*** Week 3-4: Setup
+- [ ] Development environment
+- [ ] CI/CD pipeline
+- [ ] Training materials
+- [ ] Success metrics
+
+*** Week 5-8: Pilot Launch
+- [ ] Select pilot team (5-7 engineers)
+- [ ] Begin training program
+- [ ] Start pilot project
+- [ ] Weekly check-ins
+
+** Phase 2: Expansion (Month 3-6)
+
+*** Month 3-4: Early Adoption
+- [ ] 2-3 additional teams
+- [ ] Internal tech talks
+- [ ] Documentation site
+- [ ] Community Slack/Discord
+
+*** Month 5-6: Scaling
+- [ ] 10+ teams engaged
+- [ ] First production deployment
+- [ ] Metrics collection
+- [ ] Feedback incorporation
+
+** Phase 3: Institutionalization (Month 7-12)
+
+*** Month 7-9: Standardization
+- [ ] Official language status
+- [ ] Standard toolchain
+- [ ] Review guidelines
+- [ ] Career development path
+
+*** Month 10-12: Optimization
+- [ ] Performance benchmarks
+- [ ] Cost analysis
+- [ ] Retention metrics
+- [ ] Expansion planning
+
+* Success Metrics
+
+** Technical Metrics
+| Metric | Target | Measurement |
+|--------+--------+-------------|
+| Build time | <5 min | CI pipeline |
+| Test coverage | >80% | cargo-tarpaulin |
+| Performance | +30% | Benchmarks |
+| Memory usage | -40% | Production metrics |
+| Incident rate | -50% | PagerDuty |
+
+** Organizational Metrics
+| Metric | Target | Measurement |
+|--------+--------+-------------|
+| Developer satisfaction | >4.0/5 | Quarterly survey |
+| Retention rate | >90% | HR data |
+| Time to productivity | <2 months | Manager feedback |
+| Code review time | <1 day | GitHub metrics |
+| Internal contributions | >50 | GitHub stats |
+
+* Common Pitfalls & Solutions
+
+** Pitfall 1: Analysis Paralysis
+*Problem:* Spending months evaluating without starting
+*Solution:* Time-boxed pilot (8 weeks max)
+
+** Pitfall 2: Wrong First Project
+*Problem:* Choosing project too complex/simple
+*Solution:* Goldilocks project - meaningful but bounded
+
+** Pitfall 3: Insufficient Support
+*Problem:* Expecting self-service learning
+*Solution:* Dedicated mentors and office hours
+
+** Pitfall 4: Ignoring Concerns
+*Problem:* Dismissing legitimate worries
+*Solution:* Address concerns with data and examples
+
+** Pitfall 5: Moving Too Fast
+*Problem:* Scaling before proving success
+*Solution:* Gradual expansion with checkpoints
+
+* Tools & Resources
+
+** Essential GitHub Repositories
+
+*** Learning Resources
+- [[https://github.com/rust-lang/book][The Rust Book]]
+- [[https://github.com/rust-lang/rustlings][Rustlings Exercises]]
+- [[https://github.com/google/comprehensive-rust][Google's Comprehensive Rust]]
+- [[https://github.com/rust-unofficial/awesome-rust][Awesome Rust]]
+
+*** AWS Specific
+- [[https://github.com/awslabs/aws-sdk-rust][AWS SDK for Rust]]
+- [[https://github.com/awslabs/smithy-rs][Smithy RS]]
+- [[https://github.com/firecracker-microvm/firecracker][Firecracker]]
+
+*** Company Examples
+- [[https://github.com/microsoft/windows-rs][Microsoft Windows RS]]
+- [[https://github.com/facebookexperimental/rust-shed][Meta Rust Shed]]
+- [[https://github.com/google/crubit][Google Crubit (C++ interop)]]
+
+** Internal Tools Template
+
+#+BEGIN_SRC toml
+# Template Cargo.toml for internal projects
+[package]
+name = "internal-service"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# AWS Integration
+aws-config = "1.0"
+aws-sdk-dynamodb = "1.0"
+aws-sdk-s3 = "1.0"
+
+# Web Framework
+axum = "0.7"
+tower = "0.4"
+
+# Observability
+tracing = "0.1"
+tracing-subscriber = "0.3"
+metrics = "0.22"
+
+# Error Handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+[profile.release]
+lto = true
+codegen-units = 1
+#+END_SRC
+
+* Q&A Topics Covered
+
+** Common Questions
+
+1. *"How do we convince management?"*
+   - Show cost savings (40% compute reduction)
+   - Highlight security improvements
+   - Present competitor adoption
+
+2. *"What about our existing Java/Python code?"*
+   - Gradual migration strategy
+   - Interop where needed
+   - New services first
+
+3. *"How long until developers are productive?"*
+   - Basic productivity: 2-4 weeks
+   - Full productivity: 2-3 months
+   - Expert level: 6-12 months
+
+4. *"What if we can't hire Rust developers?"*
+   - Train existing team (preferred)
+   - Hire for potential, not experience
+   - Partner with universities
+
+5. *"Is Rust just a fad?"*
+   - Linux kernel adoption
+   - Major company investment
+   - Growing ecosystem
+   - Long-term stability
+
+* Action Items for Attendees
+
+** Immediate (This Week)
+- [ ] Share this guide with your team
+- [ ] Identify a pilot project candidate
+- [ ] Start learning Rust (if haven't already)
+- [ ] Join company Rust community (or start one)
+
+** Short-term (This Month)
+- [ ] Present Rust benefits to management
+- [ ] Set up development environment
+- [ ] Complete Rustlings exercises
+- [ ] Build a small proof-of-concept
+
+** Long-term (This Quarter)
+- [ ] Launch pilot project
+- [ ] Establish metrics baseline
+- [ ] Create internal documentation
+- [ ] Plan broader rollout
+
+* Key Takeaway
+
+> "Rust adoption is not a technical challenge, it's an organizational change challenge. Success comes from understanding that and planning accordingly."
+> 
+> -- Russell Cohen
+
+The journey from zero to Rust at scale requires patience, investment, and strategic thinking. But the payoff - in performance, reliability, and developer satisfaction - makes it worthwhile.
+
+* Contact & Follow-up
+
+- GitHub: [[https://github.com/rcoh][@rcoh]]
+- AWS SDK: [[https://github.com/awslabs/aws-sdk-rust][aws-sdk-rust]]
+- Email: russell@amazon.com (for adoption questions)
+- Rust Community Discord: #aws channel
+
+---
+
+*Remember: Don't Panic! 🚀*
+
+/Every successful Rust adoption started with a single `cargo new`./

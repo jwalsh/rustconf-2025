@@ -56,7 +56,7 @@ Dr. Rebecca Rumbul, Rust Foundation Executive Director
 
 *** 10:00 - 10:30 AM - ☕ Morning Break
 
-*** TODO 10:30 - 11:00 AM - Marquee Talk
+*** DONE [#A] 10:30 - 11:00 AM - Marquee Talk
 *"Rust for AI & Accelerated Computing"*
 - Speaker: Nathaniel Simard
 - Location: Regency B (Floor 7) | Virtual: Main/Track 1 Stream
@@ -64,19 +64,25 @@ Dr. Rebecca Rumbul, Rust Foundation Executive Director
 - Demonstrates Rust's advantages for accelerated computing and portable AI solutions
 
 - https://github.com/nathanielsimard
+- https://github.com/tracel-ai/cubecl
+- https://burn.dev/book/
+
 - Core data structure is a Tensor 
 - Neural network Module system for composability
 - Backend trait has operations for various tensor types
 - Autodiff decorator wraps backends for automatic differentiation
-- https://github.com/tracel-ai/cubecl
-- https://burn.dev/book/
 
 *** TODO 11:05 - 11:35 AM - Marquee Talk
 *"Memory Safety Everywhere with Both Rust and Carbon"*
 - Chandler Carruth, Google
 - Interoperability strategies for safer systems programming
 
+Memory safety everywhere with both Carbon and Rust
 
+- @chandlerc1024 / chandlerc@{google,gmail}.com
+- https://chandlerc.blog/slides/2025-rustconf-memory-safety-everywhere
+- https://security.googleblog.com/2024/09/eliminating-memory-safety-vulnerabilities-Android.html
+- https://docs.rs/aead/latest/aead/trait.Aead.html
 
 ** Afternoon Sessions
 
@@ -88,9 +94,26 @@ Dr. Rebecca Rumbul, Rust Foundation Executive Director
 - goingforbrooke
 - Adopting Rust in challenging environments
 
-**** TODO Track 2: "A Hitchhiker's Guide to Adopting Rust"
-- Russell Cohen, AWS
-- Best practices for organizational Rust adoption
+**** TODO Track 2: "A Hitchhiker's Guide to Adopting Rust at Your Company"
+- Speaker: Russell Cohen, AWS
+- Location: Regency A (Floor 7) | Virtual: Track 2 Stream
+- Topics: Adoption strategies, case studies, organizational change
+- Five years of lessons from thousands of developers at Amazon
+
+*Abstract:* Over the last five years, thousands of developers and hundreds of teams have gone from zero-to-Rust at Amazon. This blueprint for bootstrapping Rust adoption covers strategies that work (and don't), domains where Rust succeeds, and areas still in progress.
+
+*Resources:*
+- https://github.com/rcoh (Russell's GitHub)
+- https://github.com/awslabs/aws-sdk-rust (AWS SDK for Rust)
+- https://github.com/google/comprehensive-rust (Google's training)
+- https://github.com/rust-unofficial/awesome-rust (Community resources)
+
+
+#+begin_src
+  mkdir -p .tmp
+  cd $_
+  gh repo clone rcoh/angle-grinder
+#+end_src
 
 *** 1:35 - 2:15 PM - Parallel Tracks
 
@@ -114,7 +137,7 @@ Dr. Rebecca Rumbul, Rust Foundation Executive Director
 - 5-minute community presentations
 - Topics: Tools, libraries, experiences
 
-*** 4:20 - 5:00 PM - Panel Discussion
+*** TODO 4:20 - 5:00 PM - Panel Discussion
 *"The Future of Rust"*
 - Industry leaders discuss Rust's trajectory
 
