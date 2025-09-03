@@ -2,6 +2,36 @@
 #+DATE: 2025-09-03 to 2025-09-04
 #+OPTIONS: toc:1 num:nil
 
+* Thursday, September 4 - My Schedule
+
+** Morning Block
+
+*** 8:00 - 9:00 AM
+- Badge Collection & Booth Crawl
+- Floor 7, Hyatt Regency Seattle
+
+*** 9:00 - 9:05 AM :ATTENDING:
+- Opening Remarks for Day 2
+
+*** 9:05 - 9:35 AM - KEYNOTE :MUSTATTEND:
+*This Week in Rust: Ten Years of Learning Together*
+- Speaker: Nell Shamrell-Harrington
+- Focus: Community evolution, TWiR history
+- Action: Learn about contributing to newsletter
+
+*** 9:40 - 9:50 AM :DEEPDIVE:
+*Verifying Memory Safety for Rust Standard Library*
+- Speaker: Rahul Kumar (AWS)
+- Focus: Kani model checker, formal verification
+- Resources: github.com/model-checking/kani
+- Interest: Apply to our critical code
+
+*** 10:20 - 10:50 AM :MUSTATTEND:
+*How We Made the Rust CI 75% Cheaper*
+- Speaker: Marco Ieni
+- Focus: Infrastructure optimization, cost reduction
+- Interest: Apply learnings to our CI/CD
+
 * Wednesday, September 3 - My Schedule
 
 ** Morning Block
@@ -43,8 +73,17 @@
 - Interest: Python interop for ML projects
 
 ** Evening
-- 4:20 PM - Panel: The Future of Rust
-- 5:00 PM - Welcome Reception (networking opportunity)
+
+*** 5:00 - 5:30 PM - KEYNOTE :MUSTATTEND:
+*High-Level Rust and the Future of Application Development*
+- Speaker: Jonathan Kelley (Dioxus)
+- Location: Regency B (Floor 7)
+- Key Focus: Developer ergonomics, hot-reloading, GUI apps
+- Interest: Moving beyond systems programming to app development
+
+*** 5:30 - 7:00 PM
+- Welcome Reception (networking opportunity)
+- Connect with Jonathan about Dioxus
 
 * Key Questions for Each Session
 

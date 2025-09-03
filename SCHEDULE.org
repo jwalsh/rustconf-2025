@@ -160,7 +160,15 @@ gh repo clone google/comprehensive-rust
 *"The Future of Rust"*
 - Industry leaders discuss Rust's trajectory
 
-*** 5:00 - 7:00 PM - 🍻 Welcome Reception
+*** TODO [#A] 5:00 - 5:30 PM - Keynote :ATTENDING:
+*"High-Level Rust and the Future of Application Development"*
+- Speaker: Jonathan Kelley
+- Location: Regency B (Floor 7) | Virtual: Main/Track 1 Stream
+- Topics: Dioxus framework, developer ergonomics, hot-reloading
+- Innovations: Linker-based asset bundling, cross-platform deployment, sub-second hot-reloading
+- Vision: Making Rust viable for high-level application development
+
+*** 5:30 - 7:00 PM - 🍻 Welcome Reception
 - Networking, sponsor booths, refreshments
 
 -----
@@ -169,15 +177,24 @@ gh repo clone google/comprehensive-rust
 
 ** Morning Sessions
 
-*** 9:00 - 9:05 AM - Day 2 Opening
+*** TODO [#A] 9:00 - 9:05 AM - Day 2 Opening :ATTENDING:
 
-*** TODO 9:05 - 9:35 AM - Keynote
-*"Rust in Production: Lessons from the Trenches"*
-- Real-world stories from production Rust deployments
+*** TODO [#A] 9:05 - 9:35 AM - Keynote :ATTENDING:
+*"This Week in Rust: Ten Years of Learning Together"*
+- Speaker: Nell Shamrell-Harrington
+- Location: Regency B (Floor 7) | Virtual: Main/Track 1 Stream
+- Topics: Community evolution, newsletter history, ecosystem growth
+- Behind-the-scenes: How TWiR comes together, contributor stories
+- Call to action: How to contribute to Rust's future
 
-*** 9:40 - 9:50 AM - Sponsor Talk
-*"Verifying the Rust Standard Library"*
-- AWS Automated Reasoning Team
+*** TODO [#C] 9:40 - 9:50 AM - AWS Case Study :ATTENDING:DEEPDIVE:
+*"Verifying Memory Safety for the Rust Standard Library"*
+- Speaker: Rahul Kumar, Senior Manager PM, AWS
+- Location: Regency B (Floor 7) | Virtual: Main/Track 1 Stream
+- Topics: Crowdsourced verification, community contributions
+- Focus: Standard library verification journey, accomplishments, awards
+- Resources: https://github.com/model-checking/kani
+- Related: https://github.com/awslabs/rust-formal-verification
 
 *** 9:50 - 10:20 AM - ☕ Morning Break
 

@@ -1,0 +1,257 @@
+#+TITLE: AWS Rust Standard Library Verification - Deep Dive Resources
+#+SPEAKER: Rahul Kumar (AWS)
+#+DATE: 2025-09-04 09:40
+#+TAGS: verification formal-methods safety kani model-checking
+
+* Overview
+
+AWS is leading a crowdsourced initiative to formally verify the Rust standard library for memory safety and undefined behavior. This is one of the most ambitious formal verification projects in open source.
+
+* Key Resources
+
+** Primary Repositories
+
+*** Kani - The Rust Verifier
+- Repository: [[https://github.com/model-checking/kani]]
+- Documentation: [[https://model-checking.github.io/kani/]]
+- Blog: [[https://model-checking.github.io/kani-verifier-blog/]]
+
+*** Verify Rust Standard Library
+- Repository: [[https://github.com/model-checking/verify-rust-std]]
+- Documentation: [[https://model-checking.github.io/verify-rust-std/]]
+- CI Workflows: [[https://github.com/model-checking/verify-rust-std/actions]]
+
+** AWS Blog Posts
+- [[https://aws.amazon.com/blogs/opensource/verify-the-safety-of-the-rust-standard-library/][Verify the Safety of the Rust Standard Library]]
+- [[https://aws.amazon.com/blogs/opensource/how-open-source-projects-are-using-kani-to-write-better-software-in-rust/][How Open Source Projects are Using Kani]]
+
+* The Problem
+
+** Statistics (2024)
+- 57 soundness issues filed in Rust stdlib (last 3 years)
+- 20 CVEs reported
+- 28% of soundness issues discovered in 2024 alone
+- 90%+ of Rust products depend on stdlib
+- 100% depend on core library
+
+* Kani Features
+
+** What Kani Checks
+- Memory safety violations
+- Undefined behavior
+- Panic conditions
+- Arithmetic overflows
+- Custom assertions
+- Function contracts
+
+** How It Works
+#+BEGIN_SRC rust
+#[kani::proof]
+fn verify_vec_push() {
+    let mut v: Vec<u8> = Vec::new();
+    let value: u8 = kani::any();
+    
+    // Kani will explore all possible values
+    v.push(value);
+    
+    // Verify postconditions
+    assert!(v.len() == 1);
+    assert!(v[0] == value);
+}
+#+END_SRC
+
+* Verification Challenge
+
+** Contest Structure
+- Multiple challenge levels
+- Financial awards for contributions
+- Supported by Rust Foundation
+- Focus areas:
+  - Memory safety properties
+  - Undefined behavior detection
+  - Correctness proofs
+
+** Success Stories
+- AWS Firecracker: Verified critical components
+- s2n-quic: Cryptographic protocol verification
+- Community contributions growing
+
+* Tool Ecosystem
+
+** Verification Tools Comparison
+
+| Tool | Approach | Target | Status |
+|------+----------+--------+--------|
+| Kani | Bounded model checking | Safety/UB | Production |
+| Miri | Interpreter | Runtime UB | Stable |
+| Prusti | Deductive verification | Contracts | Research |
+| Verus | SMT-based | Correctness | Active |
+| Creusot | Deductive | Why3 backend | Development |
+| ESBMC | Model checking | C/C++/Rust | Integration |
+
+* Getting Started with Kani
+
+** Installation
+#+BEGIN_SRC bash
+# Install Kani
+cargo install --locked kani-verifier
+cargo kani setup
+
+# Verify installation
+cargo kani --version
+#+END_SRC
+
+** Basic Example
+#+BEGIN_SRC rust
+// src/lib.rs
+#[cfg(kani)]
+mod verification {
+    use super::*;
+    
+    #[kani::proof]
+    fn check_my_function() {
+        let input = kani::any();
+        kani::assume(input > 0 && input < 100);
+        
+        let result = my_function(input);
+        
+        assert!(result.is_ok());
+        assert!(result.unwrap() < 1000);
+    }
+}
+#+END_SRC
+
+** Run Verification
+#+BEGIN_SRC bash
+cargo kani --tests
+#+END_SRC
+
+* Contributing to Verification
+
+** How to Contribute
+1. Pick an unverified stdlib module
+2. Write Kani proofs
+3. Submit PR to verify-rust-std
+4. Potential financial rewards
+
+** Example Contribution Areas
+- Collections (Vec, HashMap, etc.)
+- Synchronization primitives
+- String operations
+- Iterator implementations
+- Unsafe code blocks
+
+* Advanced Topics
+
+** Stubbing External Functions
+#+BEGIN_SRC rust
+#[kani::stub(std::fs::read, stub_read)]
+fn verify_file_handling() {
+    // Verification with stubbed I/O
+}
+
+fn stub_read(_path: &Path) -> io::Result<Vec<u8>> {
+    Ok(vec![kani::any(); 10])
+}
+#+END_SRC
+
+** Loop Invariants
+#+BEGIN_SRC rust
+#[kani::proof]
+fn verify_loop() {
+    let mut sum = 0u32;
+    let n: u32 = kani::any();
+    kani::assume(n < 100);
+    
+    for i in 0..n {
+        #[kani::loop_invariant(sum == i * (i - 1) / 2)]
+        sum += i;
+    }
+    
+    assert!(sum == n * (n - 1) / 2);
+}
+#+END_SRC
+
+* Performance Considerations
+
+** Verification Complexity
+- Bounded model checking limits
+- State space explosion
+- Mitigation strategies:
+  - Smaller bounds
+  - Abstraction
+  - Compositional verification
+
+** CI Integration
+#+BEGIN_SRC yaml
+# .github/workflows/kani.yml
+name: Kani Verification
+on: [push, pull_request]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: model-checking/kani-github-action@v1
+        with:
+          args: --tests
+#+END_SRC
+
+* Research Papers & Publications
+
+- [[https://www.amazon.science/publications/kani-bit-precise-verification-for-rust][Kani: Bit-Precise Verification for Rust]]
+- [[https://arxiv.org/abs/2206.07185][Model Checking Rust Programs with Kani]]
+- [[https://dl.acm.org/doi/10.1145/3545947.3573016][Verifying Dynamic Trait Objects]]
+
+* Community & Support
+
+** Discord/Slack Channels
+- Rust Formal Methods WG
+- AWS Open Source Discord
+- Kani users channel
+
+** Office Hours
+- Monthly Kani office hours
+- Verification challenge Q&A sessions
+
+* Future Roadmap
+
+** 2025 Goals
+- [ ] 50% stdlib coverage
+- [ ] Async/await support
+- [ ] Improved error messages
+- [ ] IDE integration
+- [ ] Faster verification
+
+** Long-term Vision
+- Complete stdlib verification
+- Ecosystem crate verification
+- Automated verification in cargo
+- Formal specification language
+
+* Action Items
+
+** For Your Organization
+1. Identify critical unsafe code
+2. Add Kani to CI pipeline
+3. Train team on formal methods
+4. Contribute to stdlib verification
+5. Apply for challenge rewards
+
+** Quick Wins
+- Verify data structures
+- Check panic conditions
+- Validate unsafe blocks
+- Prove absence of UB
+
+* Related Projects
+
+- [[https://github.com/rust-lang/miri][Miri - Rust interpreter]]
+- [[https://github.com/viperproject/prusti-dev][Prusti - Verification framework]]
+- [[https://github.com/verus-lang/verus][Verus - SMT verification]]
+- [[https://github.com/xldenis/creusot][Creusot - Deductive verification]]
+
+---
+
+*Key Takeaway:* Formal verification is becoming practical for production Rust code. Start with Kani for critical components today.
