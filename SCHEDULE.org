@@ -109,10 +109,15 @@ Memory safety everywhere with both Carbon and Rust
 - https://github.com/rust-unofficial/awesome-rust (Community resources)
 
 
-#+begin_src
-  mkdir -p .tmp
-  cd $_
-  gh repo clone rcoh/angle-grinder
+*Example Commands:*
+#+begin_src shell
+# Clone Russell's angle-grinder tool
+mkdir -p .tmp
+cd .tmp
+gh repo clone rcoh/angle-grinder
+
+# Clone Google's comprehensive Rust training
+gh repo clone google/comprehensive-rust
 #+end_src
 
 *** 1:35 - 2:15 PM - Parallel Tracks
