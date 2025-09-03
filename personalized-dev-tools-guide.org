@@ -1,0 +1,487 @@
+#+TITLE: Personalized Developer Tools Guide - Based on Your RustConf Interests
+#+AUTHOR: Customized for Your Focus Areas
+#+DATE: 2025-09-04
+#+OPTIONS: toc:2 num:t
+
+* Your Learning Path at RustConf 2025
+
+Based on your marked interests (TODO items), here's your optimized conference strategy and tool recommendations.
+
+** Priority Schedule
+
+| Time | Session | Why It Matters to You |
+|------+---------+------------------------|
+| Wed 10:30 | Rust for AI (Nathaniel Simard) | Burn/CubeCL for ML projects |
+| Wed 11:05 | Memory Safety (Chandler Carruth) | Type system mastery |
+| Wed 12:50 | Hitchhiker's Guide (Russell Cohen) | Team adoption strategies |
+| Wed 2:50 | Embedded Systems | IoT & edge deployment |
+| Thu 9:05 | Production Lessons | Real-world insights |
+| Thu 10:20 | CI 75% Cheaper (Marco Ieni) | Direct cost savings |
+| Thu 12:40 | Advanced Type System | Code safety patterns |
+| Thu 12:40 | Rust for Web Services | API development |
+| Thu 1:25 | Performance Profiling | Optimization techniques |
+| Thu 2:40 | Building Dev Tools | Tooling ecosystem |
+
+* AI & Machine Learning Toolchain
+
+Since you're attending Nathaniel Simard's talk, here's your ML-focused setup:
+
+** Essential ML Tools
+
+#+BEGIN_SRC toml
+# Cargo.toml for AI projects
+[dependencies]
+# Core ML Framework (from Nathaniel's talk)
+burn = { version = "0.14", features = ["wgpu", "fusion", "std"] }
+burn-autodiff = "0.14"
+burn-tensor = "0.14"
+burn-dataset = "0.14"
+
+# GPU Acceleration
+cubecl = { version = "0.2", features = ["cuda"] }
+
+# Data Processing
+ndarray = "0.15"
+polars = { version = "0.35", features = ["lazy"] }
+arrow = "50.0"
+
+# Model Serialization
+safetensors = "0.4"
+candle-core = { version = "0.3", optional = true }
+#+END_SRC
+
+** AI Development Workflow
+
+#+BEGIN_SRC bash
+# Setup script for ML development
+#!/bin/bash
+
+# Install GPU tools
+cargo install cargo-cuda
+cargo install wgpu-info
+
+# ML-specific utilities
+cargo install tensorboard-rs
+cargo install onnx-to-burn
+
+# Performance profiling for ML
+cargo install nsys-rs  # NVIDIA profiler wrapper
+cargo install tracy    # Frame profiler
+
+# Create project structure
+mkdir -p models/{checkpoints,exports,configs}
+mkdir -p data/{raw,processed,cache}
+mkdir -p notebooks
+mkdir -p benchmarks
+#+END_SRC
+
+** Quick Burn Example (Ready for the talk)
+
+#+BEGIN_SRC rust
+use burn::prelude::*;
+use burn::optim::{Adam, AdamConfig};
+
+#[derive(Module, Debug)]
+pub struct YourModel<B: Backend> {
+    linear1: nn::Linear<B>,
+    linear2: nn::Linear<B>,
+    activation: nn::ReLU,
+}
+
+impl<B: Backend> YourModel<B> {
+    pub fn forward(&self, input: Tensor<B, 2>) -> Tensor<B, 2> {
+        self.linear2.forward(
+            self.activation.forward(
+                self.linear1.forward(input)
+            )
+        )
+    }
+}
+#+END_SRC
+
+* CI/CD Optimization (Marco Ieni's Talk Prep)
+
+Since you're interested in the 75% CI cost reduction talk:
+
+** Pre-Talk Setup
+
+#+BEGIN_SRC yaml
+# .github/workflows/optimized-rust.yml
+name: Optimized CI Pipeline
+
+on: [push, pull_request]
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 1
+  CARGO_NET_RETRY: 10
+  RUST_BACKTRACE: short
+  RUSTUP_MAX_RETRIES: 10
+
+jobs:
+  # Job splitting for parallelization
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo check --all-features
+
+  test:
+    runs-on: ubuntu-latest
+    needs: check  # Only run if check passes
+    strategy:
+      matrix:
+        partition: [1, 2, 3, 4]  # Split tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@nextest
+      - run: |
+          cargo nextest run \
+            --partition count:${{ matrix.partition }}/4
+
+  bench:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bencherdev/bencher@main
+      - run: cargo bench
+#+END_SRC
+
+** Cost-Saving Configurations
+
+#+BEGIN_SRC toml
+# .cargo/config.toml - Optimization settings
+[build]
+incremental = true
+jobs = 8
+
+[target.x86_64-unknown-linux-gnu]
+linker = "clang"
+rustflags = [
+    "-C", "link-arg=-fuse-ld=lld",
+    "-C", "target-cpu=native",
+    "-Z", "share-generics=y",
+]
+
+[profile.ci]
+inherits = "release"
+lto = "thin"  # Faster than "fat"
+codegen-units = 16  # Balance compile/runtime
+#+END_SRC
+
+* Web Services Toolchain (Your Track 2 Interest)
+
+** Modern Web Stack
+
+#+BEGIN_SRC toml
+[dependencies]
+# Web Framework (latest and fastest)
+axum = { version = "0.7", features = ["ws", "multipart"] }
+tower = { version = "0.4", features = ["full"] }
+tower-http = { version = "0.5", features = ["full"] }
+
+# Async Runtime
+tokio = { version = "1", features = ["full"] }
+
+# Database
+sqlx = { version = "0.7", features = [
+    "runtime-tokio",
+    "postgres",
+    "migrate",
+    "macros",
+    "uuid",
+    "chrono",
+    "json"
+]}
+
+# API Documentation
+utoipa = { version = "4", features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "6", features = ["axum"] }
+
+# Observability
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+metrics = "0.22"
+metrics-exporter-prometheus = "0.13"
+
+# Validation
+validator = { version = "0.16", features = ["derive"] }
+#+END_SRC
+
+** API Project Template
+
+#+BEGIN_SRC rust
+use axum::{
+    extract::{Query, State},
+    response::Json,
+    routing::{get, post},
+    Router,
+};
+use serde::{Deserialize, Serialize};
+use sqlx::PgPool;
+use tower_http::{
+    compression::CompressionLayer,
+    cors::CorsLayer,
+    trace::TraceLayer,
+};
+
+#[derive(Clone)]
+struct AppState {
+    pool: PgPool,
+}
+
+async fn health() -> &'static str {
+    "OK"
+}
+
+pub fn create_app(pool: PgPool) -> Router {
+    let state = AppState { pool };
+
+    Router::new()
+        .route("/health", get(health))
+        .route("/api/v1/resource", post(create_resource))
+        .layer(CompressionLayer::new())
+        .layer(CorsLayer::permissive())
+        .layer(TraceLayer::new_for_http())
+        .with_state(state)
+}
+#+END_SRC
+
+* Performance Profiling Tools (Your Thu 1:25 PM Session)
+
+** Performance Analysis Toolkit
+
+#+BEGIN_SRC bash
+# Install profiling tools
+cargo install flamegraph
+cargo install cargo-profiling
+cargo install samply
+cargo install cargo-show-asm
+cargo install cargo-expand
+cargo install tokio-console
+cargo install cargo-machete  # Find unused dependencies
+
+# Memory profiling
+cargo install dhat-viewer
+cargo install cargo-bloat
+
+# Benchmark tools
+cargo install cargo-criterion
+cargo install hyperfine
+#+END_SRC
+
+** Profiling Workflow
+
+#+BEGIN_SRC rust
+// benches/your_benchmark.rs
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
+
+fn bench_critical_path(c: &mut Criterion) {
+    let mut group = c.benchmark_group("critical_path");
+    
+    // Compare different implementations
+    group.bench_function("baseline", |b| {
+        b.iter(|| your_function(black_box(&input)))
+    });
+    
+    group.bench_function("optimized", |b| {
+        b.iter(|| your_optimized_function(black_box(&input)))
+    });
+    
+    group.finish();
+}
+
+criterion_group!(benches, bench_critical_path);
+criterion_main!(benches);
+#+END_SRC
+
+* Advanced Type System Patterns (Your Thu 12:40 PM Interest)
+
+** Type-Level Programming Tools
+
+#+BEGIN_SRC rust
+// Advanced patterns you'll learn
+use std::marker::PhantomData;
+
+// State machines at compile time
+struct Locked;
+struct Unlocked;
+
+struct Door<State> {
+    _marker: PhantomData<State>,
+}
+
+impl Door<Locked> {
+    fn unlock(self) -> Door<Unlocked> {
+        Door { _marker: PhantomData }
+    }
+}
+
+impl Door<Unlocked> {
+    fn lock(self) -> Door<Locked> {
+        Door { _marker: PhantomData }
+    }
+    
+    fn open(&self) {
+        println!("Door opened!");
+    }
+}
+
+// Const generics for performance
+struct Buffer<const N: usize> {
+    data: [u8; N],
+}
+
+impl<const N: usize> Buffer<N> {
+    const fn new() -> Self {
+        Self { data: [0; N] }
+    }
+}
+#+END_SRC
+
+** Type System Learning Resources
+
+#+BEGIN_SRC toml
+# Dependencies for type system exploration
+[dependencies]
+typenum = "1.17"  # Type-level numbers
+generic-array = "0.14"  # Arrays with type-level sizes
+phantom-data = "0.2"  # PhantomData helpers
+const-type-layout = "0.3"  # Layout verification
+
+[dev-dependencies]
+static_assertions = "1.1"  # Compile-time assertions
+#+END_SRC
+
+* Embedded Systems Setup (Your Wed 2:50 PM Track)
+
+** Embedded Development Environment
+
+#+BEGIN_SRC bash
+# Install embedded tools
+rustup target add thumbv7em-none-eabihf  # ARM Cortex-M4/M7
+rustup target add riscv32imac-unknown-none-elf  # RISC-V
+
+cargo install probe-run
+cargo install cargo-embed
+cargo install cargo-binutils
+cargo install flip-link
+
+# Optional: hardware debugging
+cargo install probe-rs-cli
+#+END_SRC
+
+** Embedded Project Template
+
+#+BEGIN_SRC toml
+# Cargo.toml for embedded
+[dependencies]
+cortex-m = "0.7"
+cortex-m-rt = "0.7"
+panic-halt = "0.2"
+embedded-hal = "1.0"
+nb = "1.0"
+
+# For STM32
+stm32f4xx-hal = { version = "0.17", features = ["stm32f411"] }
+
+# For async embedded
+embassy-executor = "0.4"
+embassy-time = "0.2"
+embassy-stm32 = { version = "0.1", features = ["stm32f411ce"] }
+
+[profile.release]
+opt-level = "z"  # Size optimization
+lto = true
+codegen-units = 1
+#+END_SRC
+
+* Your Personalized Learning Checklist
+
+** Before the Conference
+
+- [ ] Install Rust nightly for experimental features
+- [ ] Set up Burn environment for AI talk
+- [ ] Clone example repositories for each session
+- [ ] Install profiling tools for performance session
+- [ ] Review type system basics for advanced session
+
+** During Each Session
+
+*** AI & Accelerated Computing (Wed 10:30)
+- [ ] Note Burn architecture patterns
+- [ ] Capture CubeCL optimization techniques
+- [ ] Ask about production deployment strategies
+
+*** CI Optimization (Thu 10:20)
+- [ ] Document specific cost reduction techniques
+- [ ] Get cache configuration examples
+- [ ] Understand incremental compilation setup
+
+*** Developer Tools (Thu 2:40)
+- [ ] List must-have cargo plugins
+- [ ] Note IDE configuration tips
+- [ ] Capture workflow automation ideas
+
+** Post-Conference Actions
+
+- [ ] Implement CI optimizations (Week 1)
+- [ ] Set up Burn for ML project (Week 1)
+- [ ] Create team adoption plan (Week 2)
+- [ ] Build custom developer tools (Week 3)
+- [ ] Profile and optimize existing code (Week 4)
+
+* Quick Reference for Your Talks
+
+** Commands to Run During Talks
+
+#+BEGIN_SRC bash
+# During AI talk - test Burn
+cargo new --bin burn-test && cd burn-test
+cargo add burn burn-wgpu
+
+# During CI talk - analyze current costs
+gh run list --limit 50 --json conclusion,displayTitle,databaseId | jq '.'
+gh api /repos/:owner/:repo/actions/runs --jq '.workflow_runs | map(.run_duration_ms) | add'
+
+# During performance talk - profile current code
+cargo build --release
+samply record ./target/release/your-app
+cargo flamegraph
+
+# During dev tools talk - audit current setup
+cargo tree --duplicates
+cargo outdated
+cargo audit
+#+END_SRC
+
+* Your Personal Action Items
+
+Based on your interests, prioritize these:
+
+1. **Immediate Win**: Implement Marco's CI optimizations
+   - Estimated savings: $30-40k/year
+   - Implementation time: 1 week
+
+2. **Strategic Move**: Adopt Burn for ML projects
+   - Replace Python ML pipeline
+   - 3-5x performance improvement
+
+3. **Team Enablement**: Build developer tools
+   - Custom cargo commands
+   - Automated workflows
+   - Shared configurations
+
+4. **Long-term**: Type system mastery
+   - Safer code architecture
+   - Compile-time guarantees
+   - Zero-cost abstractions
+
+---
+
+*Customized for your RustConf 2025 journey*
