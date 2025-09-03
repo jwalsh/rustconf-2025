@@ -9,13 +9,13 @@ RustConf 2025 presents critical insights for engineering leadership on toolchain
 
 ** Key Business Impacts
 
-| Metric | Potential Improvement | Source Talk |
-|--------+----------------------+-------------|
-| CI/CD Costs | 75% reduction | Marco Ieni - Rust CI Optimization |
-| Build Times | 40-60% faster | Performance & Tooling Tracks |
-| Developer Velocity | 2-3x improvement | Developer Tools Track |
-| Security Posture | Zero-cost safety | Multiple talks |
-| Deployment Efficiency | 80% reduction in binary size | Optimization talks |
+| Metric                | Potential Improvement        | Source Talk                       |
+|-----------------------+------------------------------+-----------------------------------|
+| CI/CD Costs           | 75% reduction                | Marco Ieni - Rust CI Optimization |
+| Build Times           | 40-60% faster                | Performance & Tooling Tracks      |
+| Developer Velocity    | 2-3x improvement             | Developer Tools Track             |
+| Security Posture      | Zero-cost safety             | Multiple talks                    |
+| Deployment Efficiency | 80% reduction in binary size | Optimization talks                |
 
 ** Strategic Recommendations
 

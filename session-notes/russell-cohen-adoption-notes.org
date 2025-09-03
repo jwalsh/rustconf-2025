@@ -1,0 +1,180 @@
+#+TITLE: Session Notes: A Hitchhiker's Guide to Adopting Rust at Your Company
+#+SPEAKER: Russell Cohen (AWS)
+#+DATE: 2025-09-03 12:50 PM
+#+LOCATION: Regency A (Floor 7)
+#+STATUS: ATTENDING IN-PERSON
+#+TAGS: adoption organizational-change aws must-attend
+
+* Pre-Session Preparation
+
+** Questions to Ask
+- [ ] What was the biggest resistance point at Amazon?
+- [ ] How to measure ROI in first 3 months?
+- [ ] Best first project for a Python-heavy team?
+- [ ] How to handle the "why not Go?" question?
+- [ ] Training timeline for senior engineers?
+
+** Key Topics to Listen For
+- [ ] Specific metrics from Amazon's adoption
+- [ ] Failed approaches (what NOT to do)
+- [ ] Team size recommendations
+- [ ] Timeline expectations
+- [ ] Cost/benefit analysis
+
+** My Organization's Context
+- Current languages: [Python, Java, JavaScript]
+- Team size: [Your team size]
+- Pain points: [CI/CD costs, performance, memory safety]
+- Potential pilot projects:
+  1. CLI tools
+  2. Data processing pipeline
+  3. API gateway service
+
+* Live Notes
+
+** Opening Points
+- 
+- 
+- 
+
+** Strategies That Work
+1. 
+2. 
+3. 
+4. 
+5. 
+
+** Strategies That Don't Work
+1. 
+2. 
+3. 
+4. 
+5. 
+
+** Amazon Specific Examples
+- 
+- 
+- 
+
+** Metrics & ROI
+- Developer productivity: 
+- Performance improvements: 
+- Cost savings: 
+- Incident reduction: 
+- Time to market: 
+
+** Training & Ramp-up
+- Week 1-2: 
+- Week 3-4: 
+- Month 2: 
+- Month 3: 
+
+** Tools & Resources Mentioned
+- [ ] 
+- [ ] 
+- [ ] 
+- [ ] 
+
+** Quotes & Key Insights
+> ""
+> 
+> -- Russell Cohen
+
+> ""
+> 
+> -- Russell Cohen
+
+* Q&A Session
+
+** Questions Asked
+1. Q: 
+   A: 
+
+2. Q: 
+   A: 
+
+3. Q: 
+   A: 
+
+** My Question
+Q: 
+A: 
+
+* Post-Session Action Items
+
+** Immediate (Today)
+- [ ] Share notes with team
+- [ ] Schedule follow-up discussion
+- [ ] Review Russell's GitHub repos
+- [ ] Download resources mentioned
+
+** This Week
+- [ ] Present adoption plan to manager
+- [ ] Identify pilot project
+- [ ] Form Rust interest group
+- [ ] Set up learning resources
+
+** This Month
+- [ ] Complete Rustlings
+- [ ] Build proof of concept
+- [ ] Create business case
+- [ ] Get budget approval
+
+* Key Takeaways
+
+1. *Most Important Point:* 
+
+2. *Surprising Insight:* 
+
+3. *Applicable to My Team:* 
+
+4. *Biggest Challenge:* 
+
+5. *Next Step:* 
+
+* Resources to Review
+
+** From the Talk
+- [ ] AWS SDK for Rust: https://github.com/awslabs/aws-sdk-rust
+- [ ] Russell's tools: https://github.com/rcoh
+- [ ] Google's training: https://github.com/google/comprehensive-rust
+- [ ] Awesome Rust: https://github.com/rust-unofficial/awesome-rust
+
+** Additional Research
+- [ ] Amazon's Firecracker
+- [ ] AWS Lambda Rust runtime
+- [ ] Smithy code generation
+- [ ] Internal training programs
+
+* Follow-up Actions
+
+** Contact Russell
+- GitHub: @rcoh
+- Email: russell@amazon.com
+- Topics to discuss:
+  - 
+  - 
+
+** Share with Others
+- [ ] Team Slack channel
+- [ ] Engineering all-hands
+- [ ] Tech talk scheduling
+- [ ] Blog post idea
+
+* Personal Reflection
+
+** What Resonated Most
+
+
+** What I'll Do Differently
+
+
+** Confidence Level (1-10)
+- Before talk: /10
+- After talk: /10
+
+** Commitment
+I commit to: 
+
+---
+*Note: Fill this out during and immediately after the session for maximum retention*

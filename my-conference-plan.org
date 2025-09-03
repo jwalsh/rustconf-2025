@@ -1,0 +1,165 @@
+#+TITLE: My RustConf 2025 Conference Plan
+#+DATE: 2025-09-03 to 2025-09-04
+#+OPTIONS: toc:1 num:nil
+
+* Wednesday, September 3 - My Schedule
+
+** Morning Block
+- [X] 10:30 AM - *Rust for AI & Accelerated Computing* (Nathaniel Simard)
+  - Location: Regency B (Floor 7)
+  - Focus: Burn framework, CubeCL, tensor operations
+
+- [X] 11:05 AM - *Memory Safety Everywhere* (Chandler Carruth)
+  - Topics: Carbon interop, gradual migration
+
+** Lunch & Afternoon Sessions
+
+*** 12:50 - 1:30 PM :MUSTATTEND:
+*A Hitchhiker's Guide to Adopting Rust at Your Company*
+- Speaker: Russell Cohen (AWS)
+- Location: Regency A (Floor 7) - Track 2
+- Key Focus: Amazon's 5-year journey, adoption strategies
+- Preparation: Review AWS SDK, prepare questions about ROI
+
+*** 1:40 - 2:20 PM :ATTENDING:
+*Rewrite, Optimize, Repeat: Porting a TrieMap from C to Rust*
+- Speaker: Luca Palmieri
+- Location: Regency B (Floor 7) - Track 1
+- Key Focus: C migration patterns, Redis optimization
+- Interest: Performance profiling, migration strategies
+
+*** 2:45 - 3:25 PM :ATTENDING:
+*Adapting Rust @ Rivian Cars: Next-Gen EVs*
+- Speaker: Yuri Astrakhan
+- Location: Regency B (Floor 7) - Track 1
+- Key Focus: Automotive embedded systems, C/C++ transition
+- Interest: Real-world embedded Rust, organizational challenges
+
+*** 3:35 - 4:15 PM :ATTENDING:
+*Shipping Rust to Python, TypeScript, and Ruby Users*
+- Speaker: Sam Lijin
+- Location: Regency B (Floor 7) - Track 1
+- Key Focus: Cross-language libraries, PyO3, wasm-bindgen
+- Interest: Python interop for ML projects
+
+** Evening
+- 4:20 PM - Panel: The Future of Rust
+- 5:00 PM - Welcome Reception (networking opportunity)
+
+* Key Questions for Each Session
+
+** Russell Cohen - Adoption Guide
+1. What metrics convinced Amazon leadership?
+2. Timeline for first production deployment?
+3. Training investment per developer?
+4. Biggest unexpected challenge?
+
+** Luca Palmieri - C Migration
+1. Performance comparison C vs Rust implementation?
+2. Memory safety bugs found during port?
+3. Maintenance burden comparison?
+4. Tools for validating correctness?
+
+** Yuri Astrakhan - Rivian/Automotive
+1. Safety certification challenges?
+2. Real-time constraints handling?
+3. Embedded toolchain gaps?
+4. Team transition timeline?
+
+** Sam Lijin - Language Interop
+1. PyO3 vs other binding approaches?
+2. Performance overhead acceptable ranges?
+3. Memory management across boundaries?
+4. Distribution/packaging strategies?
+
+* Session Connections & Themes
+
+#+begin_src mermaid
+graph TD
+    A[Burn/AI Framework] --> B[Python Interop]
+    C[C Migration] --> D[Memory Safety]
+    D --> E[Automotive Safety]
+    F[Adoption Strategy] --> G[Team Training]
+    G --> H[C/C++ Transition]
+    B --> I[Library Distribution]
+#+end_src
+
+* Action Items by Priority
+
+** High Priority (This Week)
+- [ ] Test Burn framework with Python bindings
+- [ ] Document C-to-Rust migration patterns from Luca's talk
+- [ ] Create adoption proposal using Russell's framework
+- [ ] Evaluate PyO3 for current Python ML pipeline
+
+** Medium Priority (This Month)
+- [ ] Research automotive Rust patterns for IoT projects
+- [ ] Build proof-of-concept Rust library with Python bindings
+- [ ] Set up profiling infrastructure from migration talk
+- [ ] Present adoption plan to leadership
+
+** Future Exploration
+- [ ] Embedded Rust for edge devices
+- [ ] WASM deployment for cross-platform libraries
+- [ ] Safety certification processes
+- [ ] Multi-language monorepo strategies
+
+* Resources to Gather
+
+** From Russell Cohen's Talk
+- [ ] AWS SDK for Rust examples
+- [ ] Internal training materials template
+- [ ] Metrics dashboard examples
+- [ ] Migration playbook
+
+** From Luca Palmieri's Talk
+- [ ] Profiling tools and techniques
+- [ ] C-to-Rust translation patterns
+- [ ] Performance benchmarking suite
+- [ ] Redis TrieMap implementation
+
+** From Yuri Astrakhan's Talk
+- [ ] Embedded Rust resources
+- [ ] Automotive standards compliance
+- [ ] Real-time Rust patterns
+- [ ] Hardware abstraction layers
+
+** From Sam Lijin's Talk
+- [ ] PyO3 best practices
+- [ ] Ruby FFI examples
+- [ ] TypeScript/WASM templates
+- [ ] Distribution automation
+
+* Networking Goals
+
+- [ ] Connect with Russell Cohen about AWS adoption
+- [ ] Ask Luca about "Zero to Production in Rust" book
+- [ ] Discuss embedded patterns with Yuri
+- [ ] Exchange GitHub handles with speakers
+- [ ] Find others doing Python/Rust integration
+
+* Post-Conference Synthesis
+
+** Common Themes Expected
+1. Incremental migration over rewrites
+2. Performance gains justify learning curve
+3. Memory safety prevents entire bug classes
+4. Tooling has matured significantly
+5. Community support is strong
+
+** Key Metrics to Track
+- Performance improvements: ____%
+- Memory reduction: ____%
+- Bug reduction: ____%
+- Developer satisfaction: ___/10
+- Time to productivity: ___ weeks
+
+** Success Criteria for My Organization
+- [ ] Identify 3 pilot projects
+- [ ] Get buy-in from 2+ team members
+- [ ] Demonstrate 30%+ performance improvement
+- [ ] Create training plan for team
+- [ ] Establish Rust code review process
+
+---
+*Remember: Take photos of slides, record key quotes, and follow up within 48 hours!*

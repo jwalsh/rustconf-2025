@@ -72,7 +72,7 @@ Dr. Rebecca Rumbul, Rust Foundation Executive Director
 - Backend trait has operations for various tensor types
 - Autodiff decorator wraps backends for automatic differentiation
 
-*** TODO 11:05 - 11:35 AM - Marquee Talk
+*** DONE 11:05 - 11:35 AM - Marquee Talk
 *"Memory Safety Everywhere with Both Rust and Carbon"*
 - Chandler Carruth, Google
 - Interoperability strategies for safer systems programming
@@ -94,7 +94,7 @@ Memory safety everywhere with both Carbon and Rust
 - goingforbrooke
 - Adopting Rust in challenging environments
 
-**** TODO Track 2: "A Hitchhiker's Guide to Adopting Rust at Your Company"
+**** TODO [#A] Track 2: "A Hitchhiker's Guide to Adopting Rust at Your Company" :ATTENDING:
 - Speaker: Russell Cohen, AWS
 - Location: Regency A (Floor 7) | Virtual: Track 2 Stream
 - Topics: Adoption strategies, case studies, organizational change
@@ -122,8 +122,11 @@ gh repo clone google/comprehensive-rust
 
 *** 1:35 - 2:15 PM - Parallel Tracks
 
-**** Track 1: "Building a High-Performance Database in Rust"
-- Technical deep-dive into database internals
+**** TODO [#A] Track 1: "Rewrite, Optimize, Repeat: Our Journey Porting a Triemap from C to Rust" :ATTENDING:
+- Speaker: Luca Palmieri
+- Location: Regency B (Floor 7) | Virtual: Main/Track 1 Stream
+- Topics: C migration, Redis search capabilities, profiling, optimization
+- Battle-tested C TrieMap implementation ported to Rust
 
 **** Track 2: "WebAssembly Component Model Deep Dive"
 - Advanced WASM patterns and practices
@@ -132,13 +135,24 @@ gh repo clone google/comprehensive-rust
 
 *** 2:50 - 3:30 PM - Parallel Tracks
 
-**** Track 1: "Unsafe Rust: When and How"
-- Guidelines for safe unsafe code
+**** TODO [#A] Track 1: "Adapting Rust @ Rivian Cars: Coolest Tech to the Next-Gen EVs" :ATTENDING:
+- Speaker: Yuri Astrakhan
+- Location: Regency B (Floor 7) | Virtual: Main/Track 1 Stream
+- Topics: Automotive, embedded systems, infotainment, cloud services
+- C/C++ developer transition, ecosystem gaps, organizational challenges
 
-**** TODO Track 2: "Rust in Embedded Systems"
+**** Track 2: "Rust in Embedded Systems"
 - Real-world embedded development patterns
 
-*** 3:35 - 4:15 PM - Lightning Talks
+*** 3:35 - 4:15 PM - Track Sessions
+
+**** TODO [#A] Track 1: "Shipping Rust to Python, Typescript, and Ruby Users" :ATTENDING:
+- Speaker: Sam Lijin
+- Location: Regency B (Floor 7) | Virtual: Main/Track 1 Stream
+- Topics: Interoperability, Python/TS/Ruby libraries, software design
+- When to (and not to) build libraries in Rust for other languages
+
+**** Track 2: Lightning Talks
 - 5-minute community presentations
 - Topics: Tools, libraries, experiences
 
