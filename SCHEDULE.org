@@ -64,11 +64,12 @@ Dr. Rebecca Rumbul, Rust Foundation Executive Director
 - Demonstrates Rust's advantages for accelerated computing and portable AI solutions
 
 - https://github.com/nathanielsimard
-- Core datata strucure is a Tensor 
-- Neural network
-- Backend trait has ops for various tensors 
-- Autodiff decorator of a backend
-
+- Core data structure is a Tensor 
+- Neural network Module system for composability
+- Backend trait has operations for various tensor types
+- Autodiff decorator wraps backends for automatic differentiation
+- https://github.com/tracel-ai/cubecl
+- https://burn.dev/book/
 
 *** TODO 11:05 - 11:35 AM - Marquee Talk
 *"Memory Safety Everywhere with Both Rust and Carbon"*

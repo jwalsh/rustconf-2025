@@ -9,18 +9,18 @@ Based on your marked interests (TODO items), here's your optimized conference st
 
 ** Priority Schedule
 
-| Time | Session | Why It Matters to You |
-|------+---------+------------------------|
-| Wed 10:30 | Rust for AI (Nathaniel Simard) | Burn/CubeCL for ML projects |
-| Wed 11:05 | Memory Safety (Chandler Carruth) | Type system mastery |
-| Wed 12:50 | Hitchhiker's Guide (Russell Cohen) | Team adoption strategies |
-| Wed 2:50 | Embedded Systems | IoT & edge deployment |
-| Thu 9:05 | Production Lessons | Real-world insights |
-| Thu 10:20 | CI 75% Cheaper (Marco Ieni) | Direct cost savings |
-| Thu 12:40 | Advanced Type System | Code safety patterns |
-| Thu 12:40 | Rust for Web Services | API development |
-| Thu 1:25 | Performance Profiling | Optimization techniques |
-| Thu 2:40 | Building Dev Tools | Tooling ecosystem |
+| Time      | Session                            | Why It Matters to You       |
+|-----------+------------------------------------+-----------------------------|
+| Wed 10:30 | Rust for AI (Nathaniel Simard)     | Burn/CubeCL for ML projects |
+| Wed 11:05 | Memory Safety (Chandler Carruth)   | Type system mastery         |
+| Wed 12:50 | Hitchhiker's Guide (Russell Cohen) | Team adoption strategies    |
+| Wed 2:50  | Embedded Systems                   | IoT & edge deployment       |
+| Thu 9:05  | Production Lessons                 | Real-world insights         |
+| Thu 10:20 | CI 75% Cheaper (Marco Ieni)        | Direct cost savings         |
+| Thu 12:40 | Advanced Type System               | Code safety patterns        |
+| Thu 12:40 | Rust for Web Services              | API development             |
+| Thu 1:25  | Performance Profiling              | Optimization techniques     |
+| Thu 2:40  | Building Dev Tools                 | Tooling ecosystem           |
 
 * AI & Machine Learning Toolchain
 

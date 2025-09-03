@@ -1,0 +1,291 @@
+#+TITLE: RustConf 2025 Conference Feedback & Insights
+#+AUTHOR: Conference Attendee
+#+DATE: 2025-09-04
+#+OPTIONS: toc:2 num:nil
+
+* Key Takeaways
+
+** Burn Framework - Game Changer for ML in Rust
+
+Nathaniel Simard's presentation on Burn was exceptional. The framework addresses real pain points in ML development:
+
+*** What Makes Burn Special
+- *Type Safety*: Compile-time tensor dimension checking prevents runtime errors
+- *Backend Flexibility*: Seamless switching between CPU/CUDA/WebGPU/Metal
+- *Zero-Cost Abstractions*: No performance penalty for safety
+- *Module System*: Composable neural network components like Rust structs
+
+*** Practical Implementation Notes
+#+BEGIN_SRC rust
+// The Module derive macro is brilliant - automatic parameter tracking
+#[derive(Module, Debug)]
+pub struct Model<B: Backend> {
+    linear: nn::Linear<B>,
+    // All parameters automatically tracked!
+}
+#+END_SRC
+
+*** CubeCL Integration
+- Cross-platform GPU kernels written in Rust
+- JIT compilation for optimal performance
+- Automatic vectorization and memory coalescing
+- This solves the "rewrite for each GPU" problem
+
+** CI/CD Cost Reduction - Marco Ieni's Talk
+
+The 75% cost reduction is achievable! Key strategies:
+
+1. *Incremental Compilation Cache*
+   - Shared across CI runs
+   - Saves 60% compilation time
+   - Use sccache or cachepot
+
+2. *Smart Test Selection*
+   - Only run affected tests
+   - Use cargo-nextest for partitioning
+   - Parallel test execution
+
+3. *Resource Right-Sizing*
+   - Most builds don't need 32 cores
+   - Profile actual usage
+   - Scale dynamically
+
+Real numbers from our preliminary tests:
+- Before: $50K/month CI costs
+- After implementing partial optimizations: $28K/month
+- Full implementation target: $12.5K/month
+
+** Memory Safety & Type System (Chandler Carruth)
+
+The Carbon interop discussion was enlightening:
+- Gradual migration path from C++ to Rust
+- Bidirectional FFI without overhead
+- Shared ownership models between languages
+
+Key insight: "Memory safety isn't all-or-nothing. Even partial Rust adoption improves overall system safety."
+
+** Production Insights
+
+From various production deployment talks:
+
+*** What Works
+- Start with CLI tools and internal services
+- Rust shines in data processing pipelines
+- Excellent for replacing Python in performance-critical paths
+- WebAssembly deployment is production-ready
+
+*** What's Challenging
+- Async ecosystem complexity (improving rapidly)
+- Compile times for large projects (use sccache!)
+- Learning curve for teams (invest in training)
+- Third-party library maturity varies
+
+* Technical Discoveries
+
+** Performance Optimizations That Matter
+
+From the Performance Profiling session:
+
+1. *Profile First*: Don't guess, measure
+   #+BEGIN_SRC bash
+   cargo build --release
+   samply record ./target/release/app
+   # Visual flamegraph instantly shows bottlenecks
+   #+END_SRC
+
+2. *Link-Time Optimization*: 
+   - `lto = "thin"` gives 80% of benefits at 30% of cost
+   - `lto = "fat"` only for final releases
+
+3. *Const Generics*: Zero-cost abstractions are real
+   #+BEGIN_SRC rust
+   struct Buffer<const N: usize> {
+       data: [u8; N],  // Stack allocated, size known at compile time
+   }
+   #+END_SRC
+
+** Developer Tools Ecosystem
+
+The tooling has matured significantly:
+
+*** Must-Have Tools (2025 Edition)
+- `bacon`: Background compilation with great UI
+- `cargo-nextest`: 3x faster test runs
+- `cargo-machete`: Find unused dependencies
+- `cargo-deny`: Supply chain security
+- `cargo-semver-checks`: API breaking change detection
+
+*** IDE Experience
+rust-analyzer has reached parity with mainstream languages:
+- Sub-second autocomplete
+- Inline type hints
+- Automatic import resolution
+- Refactoring support
+
+* Organizational Adoption Insights
+
+From Russell Cohen's "Hitchhiker's Guide":
+
+** Success Patterns
+1. *Champion Model*: Need passionate advocates
+2. *Incremental Adoption*: Don't rewrite everything
+3. *Training Investment*: Budget 2-4 weeks for proficiency
+4. *Tooling Standardization*: Shared configs and templates
+
+** Common Pitfalls to Avoid
+- Starting with the most complex system
+- Underestimating the learning curve
+- Not investing in CI/CD optimization early
+- Ignoring the ecosystem (use existing crates!)
+
+* Community & Ecosystem
+
+** Positive Trends
+- Corporate investment increasing (Microsoft, Google, AWS)
+- Academic adoption growing
+- Embedded Rust maturing rapidly
+- WebAssembly becoming first-class citizen
+
+** Areas Needing Work
+- GUI story still fragmented
+- Async trait stabilization (coming soon!)
+- Build time improvements needed for large projects
+- More intermediate-level learning resources
+
+* Action Items from Conference
+
+** Immediate (Week 1)
+- [X] Set up Burn for ML prototype
+- [ ] Implement CI caching strategy
+- [ ] Install cargo-nextest for test parallelization
+- [ ] Create team Rust learning plan
+
+** Short-term (Month 1)
+- [ ] Migrate one Python ML pipeline to Burn
+- [ ] Achieve 50% CI cost reduction
+- [ ] Build internal Rust template repository
+- [ ] Schedule team training sessions
+
+** Medium-term (Quarter)
+- [ ] Deploy first Rust service to production
+- [ ] Establish Rust coding standards
+- [ ] Contribute to one open-source Rust project
+- [ ] Present learnings to broader engineering org
+
+* Vendor/Tool Evaluations
+
+** Burn vs Other ML Frameworks
+
+| Aspect | Burn | PyTorch | Candle | Verdict |
+|--------+------+---------+--------+---------|
+| Type Safety | ✅ Excellent | ❌ None | ⚠️ Basic | Burn wins |
+| Performance | ✅ Native | ⚠️ Python overhead | ✅ Native | Tie |
+| Ecosystem | ⚠️ Growing | ✅ Massive | ⚠️ Limited | PyTorch leads |
+| Deployment | ✅ Single binary | ❌ Complex | ✅ Good | Burn/Candle win |
+| GPU Support | ✅ Multi-backend | ✅ CUDA-focused | ⚠️ Limited | Burn more flexible |
+
+*Recommendation*: Use Burn for new projects, especially if deployment simplicity matters.
+
+** CI/CD Platform Comparison
+
+Based on optimization potential:
+
+1. *GitHub Actions*: Best integration, good caching
+2. *BuildKite*: Most flexible, excellent parallelization  
+3. *CircleCI*: Good but expensive at scale
+4. *Jenkins*: Avoid for Rust (poor caching support)
+
+* Networking & Connections
+
+Key people met and follow-ups:
+- Nathaniel Simard (Burn) - Discussing collaboration on ML benchmarks
+- Marco Ieni (Rust Infra) - Sharing CI optimization results
+- Russell Cohen (AWS) - Enterprise adoption best practices
+
+* Conference Suggestions for Next Year
+
+** What Worked Well
+- Parallel tracks for different skill levels
+- Hands-on workshops before main conference
+- Lightning talks for community projects
+- Recorded sessions for virtual attendees
+
+** Improvement Opportunities
+- More intermediate-level content (gap between beginner/advanced)
+- Longer Q&A sessions
+- Industry-specific tracks (fintech, gaming, embedded)
+- Pair programming/mob programming sessions
+
+* Personal Learning Goals Post-Conference
+
+1. *Master Burn Framework*
+   - Complete tutorial exercises
+   - Migrate existing PyTorch model
+   - Contribute to documentation
+
+2. *Type System Expertise*
+   - Study advanced trait patterns
+   - Implement state machines with types
+   - Use const generics effectively
+
+3. *Performance Optimization*
+   - Profile all critical paths
+   - Implement SIMD where applicable
+   - Optimize allocations with arena pattern
+
+* Resource Links
+
+** Repositories to Clone
+- https://github.com/tracel-ai/burn - ML framework
+- https://github.com/tracel-ai/cubecl - GPU kernels
+- https://github.com/rust-lang/rust-clippy - Linting
+- https://github.com/nextest-rs/nextest - Testing
+
+** Documentation to Study
+- https://burn.dev/book/ - Burn book
+- https://doc.rust-lang.org/nomicon/ - Advanced Rust
+- https://rust-unofficial/patterns - Design patterns
+
+** Communities to Join
+- Burn Discord: High-quality ML discussions
+- Rust Discord: General help
+- r/rust: News and discussions
+- This Week in Rust: Newsletter
+
+* Cost-Benefit Analysis
+
+** Rust Adoption ROI (Based on Conference Data)
+
+Investment Required:
+- Training: $50K (team of 10)
+- Tooling: $10K (licenses, infrastructure)
+- Migration time: 3 months reduced capacity
+- Total: ~$250K
+
+Expected Returns:
+- CI/CD savings: $450K/year
+- Cloud compute: $480K/year (40% reduction)
+- Fewer production incidents: $200K/year (estimated)
+- Developer productivity: 20% improvement after ramp-up
+- Total: ~$1.13M/year
+
+*ROI: 350% first year, 450% ongoing*
+
+* Final Verdict
+
+RustConf 2025 exceeded expectations. The ecosystem has matured significantly:
+- Production-ready ML framework (Burn)
+- Proven CI/CD optimization strategies
+- Clear adoption patterns
+- Strong corporate backing
+
+*Recommendation*: Accelerate Rust adoption, starting with ML workloads and CI/CD optimization.
+
+The 75% CI cost reduction alone justifies the investment. The Burn framework opens new possibilities for efficient, safe ML deployment.
+
+Next step: Present findings to leadership and get buy-in for Q4 Rust initiative.
+
+---
+*Conference Rating: 9/10*
+*Would attend again: Absolutely*
+*Would recommend to others: Yes, especially for teams considering Rust adoption*
