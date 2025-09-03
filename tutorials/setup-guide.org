@@ -1,0 +1,362 @@
+#+TITLE: Setup Guide for Burn & CubeCL Workshop
+#+AUTHOR: RustConf 2025
+#+DATE: 2025-09-03
+#+OPTIONS: toc:2 num:t
+
+* Prerequisites
+
+** System Requirements
+
+| Component | Minimum | Recommended |
+|-----------+---------+-------------|
+| RAM       | 8 GB    | 16 GB       |
+| Storage   | 10 GB   | 20 GB       |
+| OS        | Any     | Linux/MacOS |
+
+** GPU Support (Optional but Recommended)
+
+*** NVIDIA GPUs
+- CUDA 11.0 or later
+- Driver version 450.80.02 or later
+
+*** AMD GPUs
+- ROCm 5.0 or later (Linux only)
+
+*** Apple Silicon
+- macOS 12.0 or later
+- Metal support built-in
+
+*** Intel/Other GPUs
+- WebGPU via wgpu fallback
+
+* Installation Steps
+
+** 1. Install Rust
+
+#+BEGIN_SRC bash
+# Install rustup
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Update to latest stable
+rustup update stable
+
+# Verify installation
+rustc --version
+cargo --version
+#+END_SRC
+
+** 2. Install Build Dependencies
+
+*** Linux (Ubuntu/Debian)
+#+BEGIN_SRC bash
+sudo apt update
+sudo apt install -y build-essential pkg-config libssl-dev
+#+END_SRC
+
+*** macOS
+#+BEGIN_SRC bash
+# Install Xcode Command Line Tools
+xcode-select --install
+
+# Install Homebrew if needed
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+#+END_SRC
+
+*** Windows
+#+BEGIN_SRC powershell
+# Install Visual Studio 2022 Build Tools
+# Download from: https://visualstudio.microsoft.com/downloads/
+# Select "Desktop development with C++"
+#+END_SRC
+
+** 3. GPU-Specific Setup
+
+*** NVIDIA CUDA
+#+BEGIN_SRC bash
+# Linux - Install CUDA Toolkit
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.0-1_all.deb
+sudo dpkg -i cuda-keyring_1.0-1_all.deb
+sudo apt-get update
+sudo apt-get -y install cuda
+
+# Verify CUDA installation
+nvcc --version
+nvidia-smi
+#+END_SRC
+
+*** WebGPU (Cross-platform fallback)
+#+BEGIN_SRC bash
+# No additional setup required
+# wgpu-rs will use best available backend
+#+END_SRC
+
+* Project Setup
+
+** Create Workshop Project
+
+#+BEGIN_SRC bash
+# Create project directory
+mkdir rustconf-ai-workshop
+cd rustconf-ai-workshop
+
+# Initialize Rust project
+cargo init --name ai_workshop
+
+# Create tutorial directories
+mkdir -p src/burn_examples
+mkdir -p src/cubecl_examples
+mkdir -p data
+mkdir -p models
+#+END_SRC
+
+** Configure Cargo.toml
+
+#+BEGIN_SRC toml
+[package]
+name = "ai_workshop"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Burn Framework
+burn = { version = "0.14", features = ["default"] }
+burn-wgpu = { version = "0.14", optional = true }
+burn-ndarray = { version = "0.14", optional = true }
+burn-autodiff = "0.14"
+burn-tensor = "0.14"
+
+# CubeCL
+cubecl = { version = "0.2", optional = true }
+cubecl-cuda = { version = "0.2", optional = true }
+cubecl-wgpu = { version = "0.2", optional = true }
+
+# Utilities
+serde = { version = "1.0", features = ["derive"] }
+tokio = { version = "1.35", features = ["full"] }
+anyhow = "1.0"
+
+[features]
+default = ["cpu"]
+cpu = ["burn-ndarray"]
+cuda = ["cubecl-cuda", "cubecl"]
+wgpu = ["burn-wgpu", "cubecl-wgpu", "cubecl"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+#+END_SRC
+
+** Environment Variables
+
+#+BEGIN_SRC bash
+# Create .env file
+cat << EOF > .env
+# Backend selection
+BURN_BACKEND=wgpu
+
+# GPU device (0-indexed)
+CUDA_VISIBLE_DEVICES=0
+
+# Logging
+RUST_LOG=info
+
+# Thread pool size
+RAYON_NUM_THREADS=8
+EOF
+
+# Source environment
+source .env
+#+END_SRC
+
+* Verify Installation
+
+** Test Script
+
+Create ~src/main.rs~:
+
+#+BEGIN_SRC rust
+use burn::tensor::Tensor;
+use burn::backend::WgpuBackend;
+
+fn main() {
+    println!("🔥 Burn Framework Test");
+    
+    // Initialize backend
+    type Backend = WgpuBackend;
+    let device = Default::default();
+    
+    // Create tensors
+    let tensor_a = Tensor::<Backend, 2>::from_data(
+        [[1.0, 2.0], [3.0, 4.0]], 
+        &device
+    );
+    let tensor_b = Tensor::<Backend, 2>::from_data(
+        [[5.0, 6.0], [7.0, 8.0]], 
+        &device
+    );
+    
+    // Perform operation
+    let result = tensor_a.matmul(tensor_b);
+    
+    println!("Matrix multiplication result:");
+    println!("{:?}", result.to_data());
+    
+    println!("✅ Burn is working!");
+    
+    #[cfg(feature = "cubecl")]
+    test_cubecl();
+}
+
+#[cfg(feature = "cubecl")]
+fn test_cubecl() {
+    use cubecl::prelude::*;
+    
+    println!("\n⚡ CubeCL Test");
+    
+    // Check available devices
+    let devices = cubecl::available_devices();
+    println!("Available devices: {:?}", devices);
+    
+    println!("✅ CubeCL is working!");
+}
+#+END_SRC
+
+** Run Tests
+
+#+BEGIN_SRC bash
+# Test CPU backend
+cargo run --features cpu
+
+# Test WebGPU backend
+cargo run --features wgpu
+
+# Test CUDA backend (if available)
+cargo run --features cuda
+#+END_SRC
+
+* Troubleshooting
+
+** Common Issues
+
+*** Issue: CUDA not found
+#+BEGIN_SRC bash
+# Add CUDA to PATH
+export PATH=/usr/local/cuda/bin:$PATH
+export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+#+END_SRC
+
+*** Issue: WebGPU adapter not found
+#+BEGIN_SRC bash
+# Force software rendering
+export WGPU_BACKEND=gl
+
+# Or use Vulkan
+export WGPU_BACKEND=vulkan
+#+END_SRC
+
+*** Issue: Out of memory
+#+BEGIN_SRC rust
+// Reduce batch size in code
+const BATCH_SIZE: usize = 32; // Reduce from 128
+
+// Or limit GPU memory usage
+std::env::set_var("CUDA_VISIBLE_DEVICES", "0");
+std::env::set_var("PYTORCH_CUDA_ALLOC_CONF", "max_split_size_mb:512");
+#+END_SRC
+
+** Verification Commands
+
+#+BEGIN_SRC bash
+# Check Rust installation
+rustc --version
+cargo --version
+
+# Check GPU (NVIDIA)
+nvidia-smi
+
+# Check GPU (AMD)
+rocm-smi
+
+# Check GPU (macOS)
+system_profiler SPDisplaysDataType
+
+# List available compute devices
+cargo run --example list_devices --features wgpu
+#+END_SRC
+
+* Quick Start Examples
+
+** Hello Burn
+
+#+BEGIN_SRC bash
+# Clone example
+git clone https://github.com/tracel-ai/burn
+cd burn/examples/mnist
+
+# Run training
+cargo run --release --features wgpu
+#+END_SRC
+
+** Hello CubeCL
+
+#+BEGIN_SRC bash
+# Clone example
+git clone https://github.com/tracel-ai/cubecl
+cd cubecl/examples/gelu
+
+# Run with CUDA
+cargo run --release --features cuda
+
+# Run with WebGPU
+cargo run --release --features wgpu
+#+END_SRC
+
+* Workshop Resources
+
+** Download Materials
+
+#+BEGIN_SRC bash
+# Clone workshop repository
+git clone https://github.com/rustconf/ai-workshop-2025
+cd ai-workshop-2025
+
+# Download pre-trained models
+wget https://rustconf.com/workshops/models.tar.gz
+tar -xzf models.tar.gz
+
+# Download datasets
+wget https://rustconf.com/workshops/datasets.tar.gz
+tar -xzf datasets.tar.gz
+#+END_SRC
+
+** Useful Links
+
+- [[https://burn.dev/book][Burn Book (Documentation)]]
+- [[https://github.com/tracel-ai/burn][Burn GitHub]]
+- [[https://github.com/tracel-ai/cubecl][CubeCL GitHub]]
+- [[https://rustconf.com/workshops][Workshop Materials]]
+- [[https://discord.gg/burn][Burn Discord Community]]
+
+* Pre-Workshop Checklist
+
+- [ ] Rust 1.75+ installed
+- [ ] Cargo working
+- [ ] Project created and dependencies installed
+- [ ] At least one backend (CPU/WebGPU/CUDA) working
+- [ ] Test script runs successfully
+- [ ] Workshop materials downloaded
+- [ ] GPU drivers updated (if using GPU)
+- [ ] 10GB+ free disk space
+
+* Contact Information
+
+For setup issues before the workshop:
+- Email: workshops@rustconf.com
+- Discord: #rustconf-workshops
+- GitHub Issues: https://github.com/rustconf/ai-workshop-2025/issues
+
+During the workshop:
+- Raise hand for in-person assistance
+- Use workshop chat for virtual attendees
+- Emergency contact: (provided at venue)

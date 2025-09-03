@@ -1,0 +1,514 @@
+#+TITLE: Hands-On Exercises - Burn & CubeCL Workshop
+#+AUTHOR: RustConf 2025
+#+DATE: 2025-09-03
+#+OPTIONS: toc:2 num:t
+
+* Exercise 1: Building a Simple Neural Network with Burn
+
+** Objective
+Create a feedforward neural network for the Iris dataset classification.
+
+** Starter Code
+
+#+BEGIN_SRC rust
+use burn::prelude::*;
+use burn::nn::{Linear, LinearConfig, Dropout, DropoutConfig};
+use burn::tensor::activation::softmax;
+
+#[derive(Module, Debug)]
+pub struct IrisClassifier<B: Backend> {
+    // TODO: Add layers here
+    // Hint: Input size = 4, Hidden size = 10, Output size = 3
+}
+
+impl<B: Backend> IrisClassifier<B> {
+    pub fn new(device: &B::Device) -> Self {
+        // TODO: Initialize the network
+        todo!()
+    }
+    
+    pub fn forward(&self, input: Tensor<B, 2>) -> Tensor<B, 2> {
+        // TODO: Implement forward pass
+        // Hint: Use ReLU activation and dropout
+        todo!()
+    }
+}
+
+// Test your implementation
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use burn::backend::NdArray;
+    
+    #[test]
+    fn test_iris_classifier() {
+        type B = NdArray<f32>;
+        let device = Default::default();
+        let model = IrisClassifier::<B>::new(&device);
+        
+        // Create dummy input (batch_size=2, features=4)
+        let input = Tensor::from_data([[5.1, 3.5, 1.4, 0.2], [6.2, 2.8, 4.8, 1.8]], &device);
+        
+        let output = model.forward(input);
+        assert_eq!(output.shape().dims, [2, 3]);
+    }
+}
+#+END_SRC
+
+** Solution Hints
+1. Use ~LinearConfig::new(in_features, out_features).init(device)~
+2. Chain operations: linear → activation → dropout → linear
+3. Apply softmax for final probabilities
+
+* Exercise 2: Custom Loss Function
+
+** Objective
+Implement Focal Loss for handling imbalanced datasets.
+
+** Starter Code
+
+#+BEGIN_SRC rust
+use burn::tensor::{Tensor, backend::Backend};
+
+/// Focal Loss: FL(p_t) = -α_t * (1 - p_t)^γ * log(p_t)
+/// where p_t is the model's estimated probability for the correct class
+pub fn focal_loss<B: Backend>(
+    predictions: Tensor<B, 2>,  // Shape: [batch_size, num_classes]
+    targets: Tensor<B, 1, Int>,  // Shape: [batch_size]
+    alpha: f32,  // Weight factor (typically 0.25)
+    gamma: f32,  // Focusing parameter (typically 2.0)
+) -> Tensor<B, 1> {
+    // TODO: Implement focal loss
+    // Steps:
+    // 1. Apply softmax to predictions
+    // 2. Get probabilities for correct classes
+    // 3. Calculate focal term: (1 - p_t)^gamma
+    // 4. Calculate loss: -alpha * focal_term * log(p_t)
+    // 5. Return mean loss
+    
+    todo!()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use burn::backend::NdArray;
+    
+    #[test]
+    fn test_focal_loss() {
+        type B = NdArray<f32>;
+        let device = Default::default();
+        
+        let predictions = Tensor::from_data(
+            [[0.2, 0.5, 0.3], [0.8, 0.1, 0.1]], 
+            &device
+        );
+        let targets = Tensor::from_data([1, 0], &device);
+        
+        let loss = focal_loss(predictions, targets, 0.25, 2.0);
+        assert_eq!(loss.shape().dims, [1]);
+    }
+}
+#+END_SRC
+
+* Exercise 3: Data Augmentation Pipeline
+
+** Objective
+Create a data augmentation pipeline for image tensors.
+
+** Starter Code
+
+#+BEGIN_SRC rust
+use burn::tensor::{Tensor, backend::Backend};
+use rand::Rng;
+
+pub struct ImageAugmentation {
+    rotation_range: f32,
+    zoom_range: (f32, f32),
+    horizontal_flip: bool,
+}
+
+impl ImageAugmentation {
+    pub fn new() -> Self {
+        Self {
+            rotation_range: 15.0,  // ±15 degrees
+            zoom_range: (0.9, 1.1),
+            horizontal_flip: true,
+        }
+    }
+    
+    /// Apply random augmentations to a batch of images
+    /// Input shape: [batch, channels, height, width]
+    pub fn augment<B: Backend>(&self, images: Tensor<B, 4>) -> Tensor<B, 4> {
+        let mut rng = rand::thread_rng();
+        
+        // TODO: Implement augmentations
+        // 1. Random rotation
+        // 2. Random zoom
+        // 3. Random horizontal flip
+        
+        todo!()
+    }
+    
+    fn rotate<B: Backend>(&self, image: Tensor<B, 3>, angle: f32) -> Tensor<B, 3> {
+        // TODO: Implement rotation
+        todo!()
+    }
+    
+    fn zoom<B: Backend>(&self, image: Tensor<B, 3>, factor: f32) -> Tensor<B, 3> {
+        // TODO: Implement zoom
+        todo!()
+    }
+    
+    fn flip_horizontal<B: Backend>(&self, image: Tensor<B, 3>) -> Tensor<B, 3> {
+        // TODO: Implement horizontal flip
+        // Hint: Use tensor.flip(axis)
+        todo!()
+    }
+}
+#+END_SRC
+
+* Exercise 4: CubeCL GPU Kernel - Vector Operations
+
+** Objective
+Implement a fused vector operation kernel: ~y = a * x + b * sqrt(x)~
+
+** Starter Code
+
+#+BEGIN_SRC rust
+use cubecl::prelude::*;
+
+#[cube(launch)]
+fn fused_vector_op(
+    x: &Tensor<f32>,
+    y: &mut Tensor<f32>,
+    a: f32,
+    b: f32,
+) {
+    // TODO: Implement the fused operation
+    // 1. Get thread ID
+    // 2. Check bounds
+    // 3. Load value from x
+    // 4. Compute y = a * x + b * sqrt(x)
+    // 5. Store result in y
+    
+    todo!()
+}
+
+// Bonus: Add vectorization for better performance
+#[cube(launch)]
+fn fused_vector_op_vectorized(
+    x: &Tensor<f32>,
+    y: &mut Tensor<f32>,
+    a: f32,
+    b: f32,
+) {
+    // TODO: Implement with Float4 vectorization
+    todo!()
+}
+#+END_SRC
+
+* Exercise 5: Implement Batch Normalization
+
+** Objective
+Create a custom batch normalization layer with training and inference modes.
+
+** Starter Code
+
+#+BEGIN_SRC rust
+use burn::prelude::*;
+
+#[derive(Module, Debug)]
+pub struct BatchNorm<B: Backend> {
+    gamma: Tensor<B, 1>,  // Scale parameter
+    beta: Tensor<B, 1>,   // Shift parameter
+    running_mean: Tensor<B, 1>,
+    running_var: Tensor<B, 1>,
+    momentum: f32,
+    epsilon: f32,
+    training: bool,
+}
+
+impl<B: Backend> BatchNorm<B> {
+    pub fn new(num_features: usize, device: &B::Device) -> Self {
+        // TODO: Initialize parameters
+        // gamma = ones, beta = zeros
+        // running_mean = zeros, running_var = ones
+        todo!()
+    }
+    
+    pub fn forward(&mut self, input: Tensor<B, 2>) -> Tensor<B, 2> {
+        if self.training {
+            // TODO: Training mode
+            // 1. Calculate batch mean and variance
+            // 2. Normalize input
+            // 3. Update running statistics
+            // 4. Apply scale and shift
+            todo!()
+        } else {
+            // TODO: Inference mode
+            // Use running statistics for normalization
+            todo!()
+        }
+    }
+    
+    pub fn train_mode(&mut self) {
+        self.training = true;
+    }
+    
+    pub fn eval_mode(&mut self) {
+        self.training = false;
+    }
+}
+#+END_SRC
+
+* Exercise 6: Model Ensemble
+
+** Objective
+Create an ensemble of models with different architectures and combine predictions.
+
+** Starter Code
+
+#+BEGIN_SRC rust
+use burn::prelude::*;
+
+pub struct EnsembleClassifier<B: Backend> {
+    models: Vec<Box<dyn Classifier<B>>>,
+    weights: Vec<f32>,
+}
+
+trait Classifier<B: Backend> {
+    fn predict(&self, input: Tensor<B, 2>) -> Tensor<B, 2>;
+}
+
+impl<B: Backend> EnsembleClassifier<B> {
+    pub fn new() -> Self {
+        Self {
+            models: Vec::new(),
+            weights: Vec::new(),
+        }
+    }
+    
+    pub fn add_model(&mut self, model: Box<dyn Classifier<B>>, weight: f32) {
+        // TODO: Add model to ensemble
+        todo!()
+    }
+    
+    pub fn predict(&self, input: Tensor<B, 2>) -> Tensor<B, 2> {
+        // TODO: Combine predictions
+        // 1. Get predictions from all models
+        // 2. Apply weights
+        // 3. Average or vote
+        todo!()
+    }
+    
+    pub fn predict_with_uncertainty(&self, input: Tensor<B, 2>) -> (Tensor<B, 2>, Tensor<B, 2>) {
+        // TODO: Return predictions and uncertainty estimates
+        // Calculate mean and variance across ensemble
+        todo!()
+    }
+}
+#+END_SRC
+
+* Exercise 7: Custom CubeCL Reduction
+
+** Objective
+Implement a parallel reduction to find the maximum value and its index.
+
+** Starter Code
+
+#+BEGIN_SRC rust
+use cubecl::prelude::*;
+
+#[cube(launch)]
+fn argmax_reduction(
+    input: &Tensor<f32>,
+    max_values: &mut Tensor<f32>,
+    max_indices: &mut Tensor<u32>,
+    n: u32,
+) {
+    // TODO: Implement parallel argmax
+    // 1. Load data into shared memory
+    // 2. Perform reduction to find max and index
+    // 3. Write result for this block
+    
+    let tid = THREAD_ID_X;
+    let bid = BLOCK_ID_X;
+    
+    // Shared memory for values and indices
+    let mut shared_vals = SharedMemory::<f32>::new(BLOCK_DIM_X);
+    let mut shared_idxs = SharedMemory::<u32>::new(BLOCK_DIM_X);
+    
+    // TODO: Complete implementation
+    todo!()
+}
+#+END_SRC
+
+* Exercise 8: Transfer Learning
+
+** Objective
+Implement transfer learning by freezing pretrained layers and fine-tuning.
+
+** Starter Code
+
+#+BEGIN_SRC rust
+use burn::prelude::*;
+
+#[derive(Module, Debug)]
+pub struct TransferModel<B: Backend> {
+    frozen_backbone: FrozenModule<B>,
+    trainable_head: Linear<B>,
+}
+
+pub struct FrozenModule<B: Backend> {
+    layers: Vec<Linear<B>>,
+}
+
+impl<B: Backend> TransferModel<B> {
+    pub fn from_pretrained(
+        pretrained_path: &str,
+        num_classes: usize,
+        device: &B::Device,
+    ) -> Self {
+        // TODO: Load pretrained model and freeze layers
+        todo!()
+    }
+    
+    pub fn forward(&self, input: Tensor<B, 2>) -> Tensor<B, 2> {
+        // TODO: Forward through frozen and trainable parts
+        todo!()
+    }
+    
+    pub fn freeze_backbone(&mut self) {
+        // TODO: Disable gradient computation for backbone
+        todo!()
+    }
+    
+    pub fn unfreeze_backbone(&mut self) {
+        // TODO: Enable gradient computation for fine-tuning
+        todo!()
+    }
+}
+#+END_SRC
+
+* Exercise 9: Attention Mechanism
+
+** Objective
+Implement a simple attention mechanism for sequence modeling.
+
+** Starter Code
+
+#+BEGIN_SRC rust
+use burn::prelude::*;
+
+#[derive(Module, Debug)]
+pub struct AttentionLayer<B: Backend> {
+    query_proj: Linear<B>,
+    key_proj: Linear<B>,
+    value_proj: Linear<B>,
+    scale: f32,
+}
+
+impl<B: Backend> AttentionLayer<B> {
+    pub fn new(dim: usize, device: &B::Device) -> Self {
+        // TODO: Initialize projection layers
+        todo!()
+    }
+    
+    pub fn forward(
+        &self,
+        query: Tensor<B, 3>,  // [batch, seq_len, dim]
+        key: Tensor<B, 3>,
+        value: Tensor<B, 3>,
+        mask: Option<Tensor<B, 2>>,
+    ) -> Tensor<B, 3> {
+        // TODO: Implement scaled dot-product attention
+        // 1. Project Q, K, V
+        // 2. Compute attention scores: Q @ K.T / sqrt(dim)
+        // 3. Apply mask if provided
+        // 4. Apply softmax
+        // 5. Apply attention weights to values
+        
+        todo!()
+    }
+}
+#+END_SRC
+
+* Exercise 10: Performance Optimization Challenge
+
+** Objective
+Optimize a given model for maximum inference speed.
+
+** Starter Code
+
+#+BEGIN_SRC rust
+use burn::prelude::*;
+use std::time::Instant;
+
+pub fn benchmark_model<B: Backend>(
+    model: &dyn Module<B>,
+    input: Tensor<B, 4>,
+    iterations: usize,
+) -> f64 {
+    // Warmup
+    for _ in 0..10 {
+        let _ = model.forward(input.clone());
+    }
+    
+    // Benchmark
+    let start = Instant::now();
+    for _ in 0..iterations {
+        let _ = model.forward(input.clone());
+    }
+    let duration = start.elapsed();
+    
+    duration.as_secs_f64() / iterations as f64
+}
+
+// TODO: Optimize this model for speed
+#[derive(Module, Debug)]
+pub struct SlowModel<B: Backend> {
+    conv1: Conv2d<B>,
+    conv2: Conv2d<B>,
+    conv3: Conv2d<B>,
+    fc1: Linear<B>,
+    fc2: Linear<B>,
+}
+
+// Your optimized version
+#[derive(Module, Debug)]
+pub struct FastModel<B: Backend> {
+    // TODO: Implement optimized architecture
+    // Consider: fusion, quantization, pruning, etc.
+}
+#+END_SRC
+
+* Solutions Guide
+
+Solutions are available at:
+- [[file:solutions/][solutions/]] directory
+- Online: https://github.com/rustconf/ai-workshop-2025/solutions
+
+Key concepts to remember:
+1. Always check tensor shapes
+2. Use backend-agnostic code where possible
+3. Profile before optimizing
+4. Test with small batches first
+5. Leverage Rust's type system for safety
+
+* Additional Challenges
+
+For those who finish early:
+
+1. **Multi-GPU Training**: Implement data parallelism
+2. **Custom Optimizer**: Create AdamW or RMSprop
+3. **Mixed Precision**: Add FP16 training support
+4. **Graph Neural Network**: Implement a simple GNN layer
+5. **Reinforcement Learning**: Build a simple policy gradient method
+
+* Resources
+
+- [[https://burn.dev/book][Burn Book]]
+- [[https://github.com/tracel-ai/burn/examples][Burn Examples]]
+- [[https://github.com/tracel-ai/cubecl/examples][CubeCL Examples]]
+- [[https://discord.gg/burn][Community Discord]]

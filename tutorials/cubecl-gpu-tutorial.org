@@ -1,0 +1,601 @@
+#+TITLE: CubeCL Tutorial - Cross-Platform GPU Computing in Rust
+#+AUTHOR: RustConf 2025 Tutorial Team
+#+DATE: 2025-09-03
+#+OPTIONS: toc:3 num:t ^:nil
+
+* Introduction to CubeCL
+
+CubeCL is a multi-platform high-performance compute language extension for Rust that enables:
+- GPU kernel development in pure Rust
+- Cross-platform support (CUDA, ROCm, WebGPU, Metal, Vulkan)
+- Automatic vectorization and optimization
+- Just-In-Time (JIT) compilation
+- Memory management optimized for throughput
+
+* Architecture Overview
+
+** Two-Stage Compilation
+
+CubeCL uses a unique two-step process:
+1. Proc macro parses GPU kernel code using ~syn~ crate
+2. Generates Rust function that creates Intermediate Representation (IR)
+3. IR is optimized and compiled to target platform
+
+** Supported Backends
+
+| Backend | Platform        | Status      |
+|---------+----------------+-------------|
+| CUDA    | NVIDIA GPUs    | Stable      |
+| WebGPU  | Cross-platform | Stable      |
+| ROCm    | AMD GPUs       | In Progress |
+| Metal   | Apple Silicon  | Via WebGPU  |
+| Vulkan  | Cross-platform | Via WebGPU  |
+
+* Installation
+
+** Project Setup
+
+#+BEGIN_SRC toml
+[dependencies]
+cubecl = { version = "0.2", features = ["default"] }
+
+# Choose your runtime
+cubecl-cuda = { version = "0.2", optional = true }
+cubecl-wgpu = { version = "0.2", optional = true }
+
+[features]
+cuda = ["cubecl-cuda"]
+wgpu = ["cubecl-wgpu"]
+#+END_SRC
+
+** Runtime Selection
+
+#+BEGIN_SRC bash
+# Run with CUDA
+cargo run --features cuda
+
+# Run with WebGPU
+cargo run --features wgpu
+#+END_SRC
+
+* Core Concepts
+
+** Kernel Definition
+
+CubeCL kernels are defined using the ~#[cube]~ attribute:
+
+#+BEGIN_SRC rust
+use cubecl::prelude::*;
+
+#[cube(launch)]
+fn vector_add(
+    input_a: &Tensor<f32>,
+    input_b: &Tensor<f32>,
+    output: &mut Tensor<f32>,
+) {
+    let id = ABSOLUTE_POS;
+    
+    if id < output.len() {
+        output[id] = input_a[id] + input_b[id];
+    }
+}
+#+END_SRC
+
+** Comptime Features
+
+Compile-time optimization for better performance:
+
+#+BEGIN_SRC rust
+#[cube(launch)]
+fn optimized_kernel<const UNROLL: comptime<u32>>(
+    input: &Tensor<f32>,
+    output: &mut Tensor<f32>,
+) {
+    let id = ABSOLUTE_POS;
+    
+    // Loop unrolling at compile time
+    #[unroll]
+    for i in 0..UNROLL {
+        let idx = id * UNROLL + i;
+        if idx < input.len() {
+            output[idx] = input[idx] * 2.0 + 1.0;
+        }
+    }
+}
+#+END_SRC
+
+** Automatic Vectorization
+
+CubeCL automatically vectorizes operations:
+
+#+BEGIN_SRC rust
+#[cube(launch)]
+fn vectorized_operation(
+    input: &Tensor<f32>,
+    output: &mut Tensor<f32>,
+) {
+    let id = ABSOLUTE_POS_X;
+    let vectorization = 4;
+    
+    // Automatically uses SIMD instructions
+    if id < output.len() / vectorization {
+        let vec_idx = id * vectorization;
+        
+        // Vectorized load
+        let values = Float4::from_array([
+            input[vec_idx],
+            input[vec_idx + 1],
+            input[vec_idx + 2],
+            input[vec_idx + 3],
+        ]);
+        
+        // Vectorized operations
+        let result = values * 2.0 + 1.0;
+        
+        // Vectorized store
+        output[vec_idx] = result.x;
+        output[vec_idx + 1] = result.y;
+        output[vec_idx + 2] = result.z;
+        output[vec_idx + 3] = result.w;
+    }
+}
+#+END_SRC
+
+* GPU Kernel Examples
+
+** Matrix Multiplication
+
+#+BEGIN_SRC rust
+use cubecl::prelude::*;
+
+#[cube(launch)]
+fn matmul_tiled<const TILE_SIZE: comptime<u32>>(
+    a: &Tensor<f32>,
+    b: &Tensor<f32>,
+    c: &mut Tensor<f32>,
+    m: u32,
+    n: u32,
+    k: u32,
+) {
+    // Shared memory for tile caching
+    let mut tile_a = SharedMemory::<f32>::new(TILE_SIZE * TILE_SIZE);
+    let mut tile_b = SharedMemory::<f32>::new(TILE_SIZE * TILE_SIZE);
+    
+    let row = BLOCK_ID_Y * TILE_SIZE + THREAD_ID_Y;
+    let col = BLOCK_ID_X * TILE_SIZE + THREAD_ID_X;
+    
+    let mut sum = 0.0f32;
+    
+    // Loop over tiles
+    for tile_idx in 0..(k + TILE_SIZE - 1) / TILE_SIZE {
+        // Load tiles into shared memory
+        if row < m && (tile_idx * TILE_SIZE + THREAD_ID_X) < k {
+            tile_a[THREAD_ID_Y * TILE_SIZE + THREAD_ID_X] = 
+                a[row * k + tile_idx * TILE_SIZE + THREAD_ID_X];
+        }
+        
+        if col < n && (tile_idx * TILE_SIZE + THREAD_ID_Y) < k {
+            tile_b[THREAD_ID_Y * TILE_SIZE + THREAD_ID_X] = 
+                b[(tile_idx * TILE_SIZE + THREAD_ID_Y) * n + col];
+        }
+        
+        sync_threads();
+        
+        // Compute partial dot product
+        #[unroll]
+        for i in 0..TILE_SIZE {
+            sum += tile_a[THREAD_ID_Y * TILE_SIZE + i] * 
+                   tile_b[i * TILE_SIZE + THREAD_ID_X];
+        }
+        
+        sync_threads();
+    }
+    
+    // Write result
+    if row < m && col < n {
+        c[row * n + col] = sum;
+    }
+}
+#+END_SRC
+
+** Reduction Operations
+
+#+BEGIN_SRC rust
+#[cube(launch)]
+fn parallel_reduction(
+    input: &Tensor<f32>,
+    output: &mut Tensor<f32>,
+    n: u32,
+) {
+    let tid = THREAD_ID_X;
+    let bid = BLOCK_ID_X;
+    let block_size = BLOCK_DIM_X;
+    
+    // Shared memory for reduction
+    let mut shared = SharedMemory::<f32>::new(block_size);
+    
+    // Load data and perform first reduction
+    let idx = bid * block_size * 2 + tid;
+    shared[tid] = 0.0;
+    
+    if idx < n {
+        shared[tid] = input[idx];
+        if idx + block_size < n {
+            shared[tid] += input[idx + block_size];
+        }
+    }
+    
+    sync_threads();
+    
+    // Tree reduction in shared memory
+    let mut stride = block_size / 2;
+    while stride > 0 {
+        if tid < stride {
+            shared[tid] += shared[tid + stride];
+        }
+        sync_threads();
+        stride /= 2;
+    }
+    
+    // Write result for this block
+    if tid == 0 {
+        output[bid] = shared[0];
+    }
+}
+#+END_SRC
+
+** Custom Activation Functions
+
+#+BEGIN_SRC rust
+#[cube(launch)]
+fn gelu_activation(
+    input: &Tensor<f32>,
+    output: &mut Tensor<f32>,
+) {
+    let id = ABSOLUTE_POS;
+    
+    if id < input.len() {
+        let x = input[id];
+        
+        // GELU approximation
+        let cdf = 0.5 * (1.0 + tanh(
+            sqrt(2.0 / PI) * (x + 0.044715 * x * x * x)
+        ));
+        
+        output[id] = x * cdf;
+    }
+}
+
+#[cube(launch)]
+fn swish_activation(
+    input: &Tensor<f32>,
+    output: &mut Tensor<f32>,
+    beta: f32,
+) {
+    let id = ABSOLUTE_POS;
+    
+    if id < input.len() {
+        let x = input[id];
+        output[id] = x / (1.0 + exp(-beta * x));
+    }
+}
+#+END_SRC
+
+* Memory Management
+
+** Shared Memory Usage
+
+#+BEGIN_SRC rust
+#[cube(launch)]
+fn convolution_shared(
+    input: &Tensor<f32>,
+    kernel: &Tensor<f32>,
+    output: &mut Tensor<f32>,
+    width: u32,
+    height: u32,
+) {
+    const TILE_SIZE: u32 = 16;
+    const KERNEL_SIZE: u32 = 3;
+    const PADDING: u32 = KERNEL_SIZE / 2;
+    
+    // Shared memory with padding for halo regions
+    let mut tile = SharedMemory::<f32>::new(
+        (TILE_SIZE + 2 * PADDING) * (TILE_SIZE + 2 * PADDING)
+    );
+    
+    let tx = THREAD_ID_X;
+    let ty = THREAD_ID_Y;
+    let gx = BLOCK_ID_X * TILE_SIZE + tx;
+    let gy = BLOCK_ID_Y * TILE_SIZE + ty;
+    
+    // Load tile with halo
+    load_tile_with_halo(&input, &mut tile, gx, gy, width, height);
+    
+    sync_threads();
+    
+    // Compute convolution
+    if gx < width && gy < height {
+        let mut sum = 0.0f32;
+        
+        #[unroll]
+        for ky in 0..KERNEL_SIZE {
+            #[unroll]
+            for kx in 0..KERNEL_SIZE {
+                let tile_x = tx + kx;
+                let tile_y = ty + ky;
+                sum += tile[tile_y * (TILE_SIZE + 2 * PADDING) + tile_x] * 
+                       kernel[ky * KERNEL_SIZE + kx];
+            }
+        }
+        
+        output[gy * width + gx] = sum;
+    }
+}
+#+END_SRC
+
+** Memory Coalescing
+
+#+BEGIN_SRC rust
+#[cube(launch)]
+fn coalesced_transpose(
+    input: &Tensor<f32>,
+    output: &mut Tensor<f32>,
+    width: u32,
+    height: u32,
+) {
+    const TILE_SIZE: u32 = 32;
+    
+    let mut tile = SharedMemory::<f32>::new(TILE_SIZE * (TILE_SIZE + 1)); // +1 to avoid bank conflicts
+    
+    let x = BLOCK_ID_X * TILE_SIZE + THREAD_ID_X;
+    let y = BLOCK_ID_Y * TILE_SIZE + THREAD_ID_Y;
+    
+    // Coalesced read from global memory
+    if x < width && y < height {
+        tile[THREAD_ID_Y * (TILE_SIZE + 1) + THREAD_ID_X] = input[y * width + x];
+    }
+    
+    sync_threads();
+    
+    // Transposed indices
+    let out_x = BLOCK_ID_Y * TILE_SIZE + THREAD_ID_X;
+    let out_y = BLOCK_ID_X * TILE_SIZE + THREAD_ID_Y;
+    
+    // Coalesced write to global memory
+    if out_x < height && out_y < width {
+        output[out_y * height + out_x] = tile[THREAD_ID_X * (TILE_SIZE + 1) + THREAD_ID_Y];
+    }
+}
+#+END_SRC
+
+* Integration with Burn
+
+** Creating Custom Burn Operations
+
+#+BEGIN_SRC rust
+use burn::tensor::ops::{TensorOps, FloatTensorOps};
+use cubecl::prelude::*;
+
+pub struct CubeClOps;
+
+impl<E: Float> FloatTensorOps<Self> for CubeClBackend<E> {
+    fn custom_gelu(tensor: FloatTensor<Self>) -> FloatTensor<Self> {
+        let output = empty_like(&tensor);
+        
+        // Launch CubeCL kernel
+        gelu_activation::launch(
+            &tensor.client,
+            tensor.as_handle(),
+            output.as_handle_mut(),
+            tensor.shape.num_elements(),
+        );
+        
+        output
+    }
+}
+#+END_SRC
+
+** Performance Optimization
+
+#+BEGIN_SRC rust
+use cubecl::tune::Tuner;
+
+// Auto-tuning for optimal performance
+let tuner = Tuner::new()
+    .with_block_sizes(&[32, 64, 128, 256])
+    .with_vectorization(&[1, 2, 4, 8]);
+
+let best_config = tuner.tune(|config| {
+    vector_add::launch_with_config(
+        config,
+        &input_a,
+        &input_b,
+        &output,
+    )
+});
+
+println!("Best configuration: {:?}", best_config);
+#+END_SRC
+
+* Practical Examples
+
+** Image Processing Pipeline
+
+#+BEGIN_SRC rust
+#[cube(launch)]
+fn image_pipeline(
+    input: &Tensor<u8>,
+    output: &mut Tensor<f32>,
+    width: u32,
+    height: u32,
+) {
+    let id = ABSOLUTE_POS;
+    let pixel_count = width * height;
+    
+    if id < pixel_count {
+        // Convert RGB to grayscale
+        let r = input[id * 3] as f32;
+        let g = input[id * 3 + 1] as f32;
+        let b = input[id * 3 + 2] as f32;
+        
+        let gray = 0.299 * r + 0.587 * g + 0.114 * b;
+        
+        // Apply Gaussian blur (simplified)
+        let x = id % width;
+        let y = id / width;
+        
+        let mut blurred = gray * 0.25;
+        
+        if x > 0 { blurred += get_pixel(input, x - 1, y, width) * 0.125; }
+        if x < width - 1 { blurred += get_pixel(input, x + 1, y, width) * 0.125; }
+        if y > 0 { blurred += get_pixel(input, x, y - 1, width) * 0.125; }
+        if y < height - 1 { blurred += get_pixel(input, x, y + 1, width) * 0.125; }
+        
+        // Edge detection (Sobel-like)
+        let mut edge = 0.0;
+        if x > 0 && x < width - 1 && y > 0 && y < height - 1 {
+            let gx = get_pixel(input, x + 1, y, width) - get_pixel(input, x - 1, y, width);
+            let gy = get_pixel(input, x, y + 1, width) - get_pixel(input, x, y - 1, width);
+            edge = sqrt(gx * gx + gy * gy);
+        }
+        
+        // Normalize and output
+        output[id] = (blurred + edge) / 255.0;
+    }
+}
+#+END_SRC
+
+** Neural Network Layer
+
+#+BEGIN_SRC rust
+#[cube(launch)]
+fn batch_norm_forward(
+    input: &Tensor<f32>,
+    gamma: &Tensor<f32>,
+    beta: &Tensor<f32>,
+    mean: &Tensor<f32>,
+    variance: &Tensor<f32>,
+    output: &mut Tensor<f32>,
+    batch_size: u32,
+    channels: u32,
+    spatial_size: u32,
+    epsilon: f32,
+) {
+    let id = ABSOLUTE_POS;
+    let total = batch_size * channels * spatial_size;
+    
+    if id < total {
+        let c = (id / spatial_size) % channels;
+        
+        let x = input[id];
+        let m = mean[c];
+        let v = variance[c];
+        let g = gamma[c];
+        let b = beta[c];
+        
+        // Normalize
+        let x_norm = (x - m) / sqrt(v + epsilon);
+        
+        // Scale and shift
+        output[id] = g * x_norm + b;
+    }
+}
+#+END_SRC
+
+* Debugging and Profiling
+
+** Debug Mode
+
+#+BEGIN_SRC rust
+#[cfg(debug_assertions)]
+#[cube(launch)]
+fn debug_kernel(
+    input: &Tensor<f32>,
+    output: &mut Tensor<f32>,
+) {
+    let id = ABSOLUTE_POS;
+    
+    // Debug print (only in debug mode)
+    if id == 0 {
+        printf("Kernel launched with %d threads\n", GRID_SIZE);
+    }
+    
+    if id < input.len() {
+        let value = input[id];
+        
+        // Assert for debugging
+        assert!(value >= 0.0 && value <= 1.0, "Value out of range");
+        
+        output[id] = value * 2.0;
+    }
+}
+#+END_SRC
+
+** Performance Profiling
+
+#+BEGIN_SRC rust
+use cubecl::profiler::Profiler;
+
+fn profile_kernels() {
+    let mut profiler = Profiler::new();
+    
+    profiler.start("vector_add");
+    vector_add::launch(&input_a, &input_b, &output);
+    profiler.end("vector_add");
+    
+    profiler.start("matmul");
+    matmul_tiled::launch(&matrix_a, &matrix_b, &matrix_c, m, n, k);
+    profiler.end("matmul");
+    
+    profiler.report();
+}
+#+END_SRC
+
+* Exercises
+
+** Exercise 1: Implement Softmax
+Create a numerically stable softmax kernel using shared memory for the reduction operations.
+
+** Exercise 2: Optimize Convolution
+Implement a highly optimized 2D convolution kernel with multiple optimization techniques.
+
+** Exercise 3: Custom RNN Cell
+Build a custom LSTM or GRU cell using CubeCL primitives.
+
+** Exercise 4: Multi-GPU Support
+Extend a kernel to work across multiple GPUs using CubeCL's multi-device API.
+
+* Best Practices
+
+** Thread Organization
+- Use power-of-2 block sizes for better occupancy
+- Balance shared memory usage with thread count
+- Consider warp/wavefront sizes (32 for NVIDIA, 64 for AMD)
+
+** Memory Access Patterns
+- Ensure coalesced global memory access
+- Use shared memory to reduce global memory bandwidth
+- Avoid bank conflicts in shared memory
+
+** Optimization Strategies
+- Leverage compile-time constants with ~comptime~
+- Use loop unrolling for small, fixed iterations
+- Profile and auto-tune for target hardware
+
+* Resources
+
+- [[https://github.com/tracel-ai/cubecl][CubeCL GitHub Repository]]
+- [[https://gist.github.com/nihalpasham/570d4fe01b403985e1eaf620b6613774][CubeCL Architecture Overview]]
+- [[https://burn.dev][Burn Framework Documentation]]
+- GPU vendor documentation (CUDA, ROCm, WebGPU)
+
+* Summary
+
+CubeCL enables writing high-performance GPU kernels in Rust with:
+- Cross-platform portability
+- Type safety and memory safety
+- Automatic optimizations
+- Seamless integration with Burn
+- JIT compilation for optimal performance
+
+This makes it ideal for building portable, high-performance AI and compute applications.

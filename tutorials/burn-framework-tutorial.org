@@ -1,0 +1,425 @@
+#+TITLE: Burn Framework Tutorial - Deep Learning in Rust
+#+AUTHOR: RustConf 2025 Tutorial Team
+#+DATE: 2025-09-03
+#+OPTIONS: toc:3 num:t ^:nil
+
+* Introduction to Burn
+
+Burn is a next-generation deep learning framework written in pure Rust that provides:
+- Zero-cost abstractions for neural network development
+- Multiple backend support (CUDA, Metal, WebGPU, CPU)
+- Type safety and memory safety guarantees
+- WebAssembly support for browser inference
+
+* Installation and Setup
+
+** Prerequisites
+
+#+BEGIN_SRC bash
+# Ensure you have Rust installed (1.75+)
+rustc --version
+
+# Create a new project
+cargo new burn-tutorial --bin
+cd burn-tutorial
+#+END_SRC
+
+** Adding Dependencies
+
+Edit ~Cargo.toml~:
+
+#+BEGIN_SRC toml
+[package]
+name = "burn-tutorial"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+burn = { version = "0.14", features = ["default"] }
+burn-wgpu = "0.14"  # GPU backend via WebGPU
+burn-ndarray = "0.14"  # CPU backend
+#+END_SRC
+
+* Core Concepts
+
+** Tensors - The Foundation
+
+Tensors are the core data structure in Burn:
+
+#+BEGIN_SRC rust
+use burn::tensor::Tensor;
+use burn::backend::WgpuBackend;
+
+// Type alias for our backend
+type Backend = WgpuBackend;
+
+fn tensor_basics() {
+    // Create a 2D tensor
+    let tensor = Tensor::<Backend, 2>::from_data([[1.0, 2.0], [3.0, 4.0]]);
+    
+    // Basic operations
+    let doubled = tensor.clone() * 2.0;
+    let sum = tensor.sum();
+    
+    // Shape and dimensions
+    let shape = tensor.shape();
+    println!("Shape: {:?}", shape);
+}
+#+END_SRC
+
+** Backend Abstraction
+
+Burn's backend system allows switching between compute targets:
+
+#+BEGIN_SRC rust
+use burn::backend::{Autodiff, Backend};
+
+// Different backend options
+use burn_wgpu::{WgpuBackend, WgpuDevice};
+use burn_ndarray::NdArrayBackend;
+
+// With automatic differentiation
+type TrainingBackend = Autodiff<WgpuBackend>;
+type InferenceBackend = WgpuBackend;
+
+// CPU backend for testing
+type CpuBackend = NdArrayBackend<f32>;
+#+END_SRC
+
+* Building Neural Networks
+
+** Module System
+
+Create neural network modules using Burn's derive macro:
+
+#+BEGIN_SRC rust
+use burn::nn;
+use burn::module::Module;
+use burn::tensor::backend::Backend;
+
+#[derive(Module, Debug)]
+pub struct SimpleNet<B: Backend> {
+    linear1: nn::Linear<B>,
+    linear2: nn::Linear<B>,
+    dropout: nn::Dropout,
+    activation: nn::ReLU,
+}
+
+impl<B: Backend> SimpleNet<B> {
+    pub fn new(device: &B::Device) -> Self {
+        Self {
+            linear1: nn::LinearConfig::new(784, 128).init(device),
+            linear2: nn::LinearConfig::new(128, 10).init(device),
+            dropout: nn::DropoutConfig::new(0.3).init(),
+            activation: nn::ReLU::new(),
+        }
+    }
+    
+    pub fn forward<const D: usize>(&self, input: Tensor<B, D>) -> Tensor<B, D> {
+        let x = self.linear1.forward(input);
+        let x = self.activation.forward(x);
+        let x = self.dropout.forward(x);
+        self.linear2.forward(x)
+    }
+}
+#+END_SRC
+
+** Custom Activation Functions
+
+Implement custom operations with Burn's tensor API:
+
+#+BEGIN_SRC rust
+use burn::tensor::activation;
+
+// Custom GELU implementation
+fn gelu_custom<B: Backend, const D: usize>(x: Tensor<B, D>) -> Tensor<B, D> {
+    let sqrt_2 = 1.4142135623730951;
+    let x_scaled = x.clone() / sqrt_2;
+    let erf_result = x_scaled.erf();
+    let normalized = (erf_result + 1.0) / 2.0;
+    x * normalized
+}
+
+// Swish activation
+fn swish<B: Backend, const D: usize>(x: Tensor<B, D>) -> Tensor<B, D> {
+    let sigmoid = activation::sigmoid(x.clone());
+    x * sigmoid
+}
+#+END_SRC
+
+* Training Pipeline
+
+** Dataset and DataLoader
+
+#+BEGIN_SRC rust
+use burn::data::dataloader::{DataLoader, Dataset};
+use burn::tensor::Tensor;
+
+#[derive(Clone, Debug)]
+struct SimpleDataset {
+    data: Vec<(Vec<f32>, usize)>,
+}
+
+impl Dataset<(Tensor<Backend, 2>, Tensor<Backend, 1, Int>)> for SimpleDataset {
+    fn get(&self, index: usize) -> Option<(Tensor<Backend, 2>, Tensor<Backend, 1, Int>)> {
+        self.data.get(index).map(|(input, label)| {
+            let input_tensor = Tensor::from_data(input.as_slice());
+            let label_tensor = Tensor::from_data([*label as i32]);
+            (input_tensor, label_tensor)
+        })
+    }
+    
+    fn len(&self) -> usize {
+        self.data.len()
+    }
+}
+#+END_SRC
+
+** Training Loop
+
+#+BEGIN_SRC rust
+use burn::optim::{Adam, AdamConfig, Optimizer};
+use burn::tensor::loss::cross_entropy_with_logits;
+
+fn train_model<B: Backend>(
+    model: SimpleNet<B>,
+    train_loader: DataLoader<SimpleDataset>,
+    epochs: usize,
+    device: &B::Device,
+) {
+    let mut optimizer = AdamConfig::new()
+        .with_learning_rate(0.001)
+        .init();
+    
+    for epoch in 0..epochs {
+        let mut total_loss = 0.0;
+        
+        for (batch_inputs, batch_labels) in train_loader.iter() {
+            // Forward pass
+            let predictions = model.forward(batch_inputs);
+            
+            // Calculate loss
+            let loss = cross_entropy_with_logits(predictions, batch_labels);
+            
+            // Backward pass
+            let gradients = loss.backward();
+            
+            // Update weights
+            model = optimizer.step(model, gradients);
+            
+            total_loss += loss.into_scalar();
+        }
+        
+        println!("Epoch {}: Loss = {}", epoch, total_loss);
+    }
+}
+#+END_SRC
+
+* Advanced Features
+
+** Automatic Kernel Fusion
+
+Burn automatically optimizes operations:
+
+#+BEGIN_SRC rust
+// These operations will be fused into a single kernel
+fn fused_operations<B: Backend, const D: usize>(x: Tensor<B, D>) -> Tensor<B, D> {
+    x.clone()
+        .mul_scalar(2.0)
+        .add_scalar(1.0)
+        .clamp(-1.0, 1.0)
+        .tanh()
+}
+#+END_SRC
+
+** Model Serialization
+
+Save and load models:
+
+#+BEGIN_SRC rust
+use burn::record::{Recorder, BinFileRecorder};
+
+fn save_model<B: Backend>(model: &SimpleNet<B>, path: &str) {
+    let recorder = BinFileRecorder::<f32>::new();
+    model.save_file(path, &recorder).unwrap();
+}
+
+fn load_model<B: Backend>(path: &str, device: &B::Device) -> SimpleNet<B> {
+    let recorder = BinFileRecorder::<f32>::new();
+    SimpleNet::load_file(path, &recorder, device).unwrap()
+}
+#+END_SRC
+
+* Practical Examples
+
+** MNIST Classifier
+
+Complete example for MNIST digit classification:
+
+#+BEGIN_SRC rust
+use burn::nn::{conv::Conv2d, pool::MaxPool2d};
+
+#[derive(Module, Debug)]
+pub struct MnistCNN<B: Backend> {
+    conv1: Conv2d<B>,
+    conv2: Conv2d<B>,
+    pool: MaxPool2d,
+    fc1: nn::Linear<B>,
+    fc2: nn::Linear<B>,
+    dropout: nn::Dropout,
+    activation: nn::ReLU,
+}
+
+impl<B: Backend> MnistCNN<B> {
+    pub fn new(device: &B::Device) -> Self {
+        Self {
+            conv1: Conv2dConfig::new([1, 32], [3, 3]).init(device),
+            conv2: Conv2dConfig::new([32, 64], [3, 3]).init(device),
+            pool: MaxPool2dConfig::new([2, 2]).init(),
+            fc1: nn::LinearConfig::new(9216, 128).init(device),
+            fc2: nn::LinearConfig::new(128, 10).init(device),
+            dropout: nn::DropoutConfig::new(0.5).init(),
+            activation: nn::ReLU::new(),
+        }
+    }
+    
+    pub fn forward(&self, images: Tensor<B, 4>) -> Tensor<B, 2> {
+        let [batch_size, _, _, _] = images.dims();
+        
+        // Convolutional layers
+        let x = self.conv1.forward(images);
+        let x = self.activation.forward(x);
+        let x = self.pool.forward(x);
+        
+        let x = self.conv2.forward(x);
+        let x = self.activation.forward(x);
+        let x = self.pool.forward(x);
+        
+        // Flatten for fully connected layers
+        let x = x.reshape([batch_size, -1]);
+        
+        // Fully connected layers
+        let x = self.fc1.forward(x);
+        let x = self.activation.forward(x);
+        let x = self.dropout.forward(x);
+        self.fc2.forward(x)
+    }
+}
+#+END_SRC
+
+** Text Generation with Transformers
+
+#+BEGIN_SRC rust
+#[derive(Module, Debug)]
+pub struct TransformerBlock<B: Backend> {
+    attention: nn::MultiHeadAttention<B>,
+    feed_forward: PositionWiseFeedForward<B>,
+    norm1: nn::LayerNorm<B>,
+    norm2: nn::LayerNorm<B>,
+}
+
+impl<B: Backend> TransformerBlock<B> {
+    pub fn forward(&self, x: Tensor<B, 3>) -> Tensor<B, 3> {
+        // Self-attention with residual connection
+        let attn_output = self.attention.forward(x.clone(), x.clone(), x.clone());
+        let x = self.norm1.forward(x + attn_output);
+        
+        // Feed-forward with residual connection
+        let ff_output = self.feed_forward.forward(x.clone());
+        self.norm2.forward(x + ff_output)
+    }
+}
+#+END_SRC
+
+* Performance Optimization
+
+** Backend Selection Strategy
+
+#+BEGIN_SRC rust
+fn select_optimal_backend() -> Box<dyn Backend> {
+    if cuda_available() {
+        Box::new(CudaBackend::new())
+    } else if metal_available() {
+        Box::new(MetalBackend::new())
+    } else if wgpu_available() {
+        Box::new(WgpuBackend::new())
+    } else {
+        Box::new(NdArrayBackend::new())
+    }
+}
+#+END_SRC
+
+** Memory Management
+
+#+BEGIN_SRC rust
+// Efficient batch processing
+fn process_large_dataset<B: Backend>(data: Vec<Tensor<B, 2>>, batch_size: usize) {
+    for batch in data.chunks(batch_size) {
+        let stacked = Tensor::stack(batch.to_vec(), 0);
+        // Process batch
+        // Automatic memory cleanup when batch goes out of scope
+    }
+}
+#+END_SRC
+
+* Deployment
+
+** WebAssembly Export
+
+#+BEGIN_SRC rust
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+pub struct WebModel {
+    model: MnistCNN<WgpuBackend>,
+}
+
+#[wasm_bindgen]
+impl WebModel {
+    pub fn new() -> Self {
+        let device = WgpuDevice::default();
+        Self {
+            model: MnistCNN::new(&device),
+        }
+    }
+    
+    pub fn predict(&self, input: Vec<f32>) -> Vec<f32> {
+        let tensor = Tensor::from_data(input.as_slice());
+        let output = self.model.forward(tensor);
+        output.to_data().to_vec()
+    }
+}
+#+END_SRC
+
+* Exercises
+
+** Exercise 1: Custom Loss Function
+Implement a focal loss function for imbalanced classification.
+
+** Exercise 2: Data Augmentation
+Create a data augmentation pipeline for image classification.
+
+** Exercise 3: Model Ensemble
+Build an ensemble of models with different architectures.
+
+** Exercise 4: Transfer Learning
+Implement transfer learning by freezing layers and fine-tuning.
+
+* Resources
+
+- [[https://burn.dev][Official Burn Documentation]]
+- [[https://github.com/tracel-ai/burn][Burn GitHub Repository]]
+- [[https://github.com/tracel-ai/burn/tree/main/examples][Example Projects]]
+- [[https://burn.dev/book][The Burn Book]]
+
+* Summary
+
+Burn provides a powerful, type-safe framework for deep learning in Rust with:
+- Excellent performance across multiple backends
+- Zero-cost abstractions
+- Comprehensive neural network building blocks
+- Easy deployment to WebAssembly
+- Strong memory safety guarantees
+
+The combination of Rust's safety and Burn's design makes it ideal for production AI systems.
