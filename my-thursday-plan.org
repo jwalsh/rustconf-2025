@@ -1,0 +1,213 @@
+#+TITLE: Thursday, September 4 - Complete Conference Schedule
+#+DATE: 2025-09-04
+#+OPTIONS: toc:1 num:nil
+
+* Thursday Morning Block
+
+** 9:00 - 9:05 AM - Day 2 Opening :ATTENDING:
+- Quick opening remarks
+- Day's highlights preview
+
+** 9:05 - 9:35 AM - KEYNOTE :MUSTATTEND:
+*This Week in Rust: Ten Years of Learning Together*
+- Speaker: Nell Shamrell-Harrington
+- Location: Regency B (Floor 7)
+- Key Topics:
+  - 600+ issues documenting Rust's evolution
+  - From early adoption to critical systems
+  - How TWiR comes together weekly
+  - Contributor stories and community growth
+- Action: Learn how to contribute to TWiR
+
+** 9:40 - 9:50 AM - AWS Deep Dive :ATTENDING:IMPORTANT:
+*Verifying Memory Safety for the Rust Standard Library*
+- Speaker: Rahul Kumar, Senior Manager PM, AWS
+- Location: Regency B (Floor 7)
+- Focus Areas:
+  - Crowdsourced verification initiative
+  - Kani model checker demonstration
+  - Community contributions and awards
+  - Standard library verification progress
+- Resources:
+  - github.com/model-checking/kani
+  - github.com/awslabs/rust-formal-verification
+
+** 10:20 - 10:50 AM - MARQUEE TALK :MUSTATTEND:
+*How We Made the Rust CI 75% Cheaper*
+- Speaker: Marco Ieni
+- Location: Regency B (Floor 7)
+- Critical for Our Team:
+  - Infrastructure optimization techniques
+  - Cost reduction strategies
+  - CI/CD sustainability
+  - Future maintenance plans
+- Expected Takeaways:
+  - Caching strategies
+  - Resource optimization
+  - Parallel execution patterns
+
+* Thursday Afternoon - Packed Schedule!
+
+** 11:40 AM - 12:25 PM - INTERACTIVE LUNCH :FUN:MUSTATTEND:
+*Choose Your Own Disaster – Rusty and the Crate Escape!*
+- Speaker: Christopher "CRob" Robinson
+- Location: Regency A (Floor 7)
+- Type: Interactive cybersecurity game
+- Format:
+  - Choose Your Own Adventure style
+  - Mock supply chain attack
+  - Audience voting on responses
+  - Learn incident response through humor
+- **NOTE: Grab lunch first and arrive early - limited capacity!**
+
+** 12:40 - 1:20 PM - AUTOMOTIVE INNOVATION :ATTENDING:
+*Rusty New Cars: Look, Ma, No C Added!*
+- Speaker: Brad Gibson (U007D)
+- Location: Regency A (Floor 7) - Track 2
+- Topics:
+  - Open source in automotive
+  - Safety-critical systems
+  - Hardware innovation
+  - Personal transportation future
+- Interest: Embedded Rust in production vehicles
+
+** 1:30 - 2:10 PM - OBSERVABILITY DEEP DIVE :MUSTATTEND:
+*Auto-Instrumenting Rust Applications Using eBPF and OpenTelemetry*
+- Speaker: Lalit Kumar Bhasin
+- Location: Regency A (Floor 7) - Track 2
+- Critical Topics:
+  - eBPF for zero-overhead observability
+  - OpenTelemetry integration
+  - Distributed tracing without code changes
+  - Kernel to userspace span emission
+- Applications:
+  - Production monitoring
+  - Performance analysis
+  - Debugging distributed systems
+
+** 2:35 - 3:15 PM - EDUCATION & EMBEDDED :ATTENDING:
+*To the Stratosphere and Beyond: Rust at 100,000ft*
+- Speaker: Konstantinos Stathopulos
+- Location: Regency A (Floor 7) - Track 2
+- Cool Factor:
+  - High-altitude balloon case study
+  - Microcontroller programming
+  - Education context comparisons
+  - Arduino vs Rust for students
+- Takeaways:
+  - Rust in education
+  - Embedded patterns for beginners
+  - Real hardware projects
+
+* Session Priorities & Strategy
+
+** Must-Attend (Cannot Miss)
+1. Nell's TWiR Keynote - Community history
+2. Marco's CI Cost Reduction - Direct savings
+3. CRob's Disaster Exercise - Fun + learning
+4. eBPF/OpenTelemetry - Critical for monitoring
+
+** High Priority
+1. AWS Verification - Formal methods insights
+2. Automotive Talk - Embedded production use
+
+** Interesting But Lower Priority
+1. Stratosphere Balloon - Educational angle
+
+* Questions to Ask
+
+** For Nell (TWiR)
+- How can our team contribute to TWiR?
+- What makes a good "Crate of the Week"?
+- Community trends you're seeing?
+
+** For Rahul (AWS Verification)
+- ROI on formal verification?
+- How to start with Kani?
+- Verification priorities for our code?
+
+** For Marco (CI Optimization)
+- Specific GitHub Actions optimizations?
+- Cache invalidation strategies?
+- Cost monitoring tools?
+
+** For CRob (Security Exercise)
+- Most common supply chain attacks?
+- Incident response checklist?
+- Security tools recommendations?
+
+** For Lalit (eBPF)
+- Performance overhead of eBPF?
+- OpenTelemetry backend recommendations?
+- Debugging eBPF programs?
+
+* Logistics & Notes
+
+** Schedule Conflicts
+- No conflicts! All Track 2 afternoon
+- Lunch session requires quick food grab
+
+** Networking Opportunities
+- Connect with Marco about CI
+- Talk to Rahul about verification
+- Find CRob for security discussions
+- Exchange contacts with speakers
+
+** Action Items During Sessions
+- [ ] Take photos of key slides
+- [ ] Note specific tool names
+- [ ] Capture cost/performance metrics
+- [ ] Get GitHub repos mentioned
+- [ ] Follow speakers on social media
+
+* Post-Conference Follow-ups
+
+** Immediate (Same Day)
+- [ ] Share CI optimization findings with team
+- [ ] Document security exercise lessons
+- [ ] Install Kani for verification testing
+
+** This Week
+- [ ] Implement CI cost reductions
+- [ ] Set up eBPF monitoring pilot
+- [ ] Review TWiR contribution guidelines
+- [ ] Create incident response playbook
+
+** This Month
+- [ ] Present Thursday learnings to team
+- [ ] Calculate CI cost savings potential
+- [ ] Start formal verification initiative
+- [ ] Contribute to TWiR
+
+* Resource Collection
+
+** GitHub Repos to Clone
+- model-checking/kani
+- awslabs/rust-formal-verification
+- rust-lang/this-week-in-rust
+- opentelemetry/opentelemetry-rust
+- aya-rs/aya (eBPF for Rust)
+
+** Tools to Install
+- cargo-audit
+- cargo-deny
+- kani-verifier
+- bpftool
+- opentelemetry-collector
+
+** Documentation to Read
+- Kani tutorial
+- eBPF programming guide
+- OpenTelemetry Rust docs
+- TWiR submission guidelines
+
+---
+
+*Thursday Theme:* Community, Security, Observability, and Cost Optimization
+
+*Key Outcomes Expected:*
+1. 75% CI cost reduction strategy
+2. Supply chain security playbook
+3. Zero-overhead monitoring solution
+4. Formal verification starter kit
+5. Community contribution path

@@ -177,13 +177,17 @@ gh repo clone google/comprehensive-rust
 
 *** TODO [#A] 9:00 - 9:05 AM - Day 2 Opening :ATTENDING:
 
-*** TODO [#A] 9:05 - 9:35 AM - Keynote :ATTENDING:
+*** DONE [#A] 9:05 - 9:35 AM - Keynote :ATTENDING:
 *"This Week in Rust: Ten Years of Learning Together"*
 - Speaker: Nell Shamrell-Harrington
 - Location: Regency B (Floor 7) | Virtual: Main/Track 1 Stream
 - Topics: Community evolution, newsletter history, ecosystem growth
+- 600+ issues documenting Rust's journey from early adoption to critical systems
 - Behind-the-scenes: How TWiR comes together, contributor stories
 - Call to action: How to contribute to Rust's future
+
++ Expand to other high level languages 
++ Use crate of the week as a way to onboard / contributing
 
 *** TODO [#C] 9:40 - 9:50 AM - AWS Case Study :ATTENDING:DEEPDIVE:
 *"Verifying Memory Safety for the Rust Standard Library"*
@@ -196,10 +200,12 @@ gh repo clone google/comprehensive-rust
 
 *** 9:50 - 10:20 AM - ☕ Morning Break
 
-*** TODO 10:20 - 10:50 AM - Marquee Talk
+*** TODO [#A] 10:20 - 10:50 AM - Marquee Talk :ATTENDING:
 *"How We Made the Rust CI 75% Cheaper"*
-- Marco Ieni
-- Infrastructure optimizations and cost savings
+- Speaker: Marco Ieni
+- Location: Regency B (Floor 7) | Virtual: Main/Track 1 Stream
+- Topics: Infrastructure optimization, cost reduction, CI/CD best practices
+- Focus: Challenges, solutions, and future sustainability plans
 
 *** 10:55 - 11:25 AM - Marquee Talk
 *"10 Years of Redox OS and Rust"*
@@ -208,33 +214,51 @@ gh repo clone google/comprehensive-rust
 
 ** Afternoon Sessions
 
-*** 11:30 AM - 12:40 PM - 🍽️ Lunch Break + Sponsor Expo
+*** 11:40 AM - 12:25 PM - Interactive Experience :ATTENDING:FUN:
+*"Choose Your Own Disaster – Rusty and the Crate Escape!"*
+- Speaker: Christopher "CRob" Robinson
+- Location: Regency A (Floor 7) | Virtual: Track 2 Stream
+- Type: Interactive workshop/game during lunch
+- Topics: Mock cybersecurity incident, supply chain security, incident response
+- Format: Choose Your Own Adventure style decision-making
+- Note: Limited capacity - grab lunch and arrive early!
+
+*** 12:25 - 12:40 PM - 🍽️ Quick Lunch
 
 *** 12:40 - 1:20 PM - Parallel Tracks
 
-**** TODO Track 1: "Advanced Type System Tricks"
+**** Track 1: "Advanced Type System Tricks"
 - Leveraging Rust's type system for safety and expressiveness
 
-**** TODO Track 2: "Rust for Web Services"
-- Building scalable web applications
+**** TODO [#B] Track 2: "Rusty New Cars: Look, Ma, No C Added!" :ATTENDING:
+- Speaker: Brad Gibson (U007D)
+- Location: Regency A (Floor 7) | Virtual: Track 2 Stream
+- Topics: Automotive, open source hardware, safety-critical systems
+- Focus: Bringing open source to personal transportation
 
-*** 1:25 - 2:05 PM - Parallel Tracks
+*** 1:30 - 2:10 PM - Parallel Tracks
 
-**** TODO Track 1: "Performance Profiling and Optimization"
+**** Track 1: "Performance Profiling and Optimization"
 - Tools and techniques for faster Rust code
 
-**** Track 2: "GUI Development with Rust"
-- Modern approaches to desktop applications
+**** TODO [#A] Track 2: "Auto-Instrumenting Rust Applications Using eBPF and OpenTelemetry" :ATTENDING:
+- Speaker: Lalit Kumar Bhasin
+- Location: Regency A (Floor 7) | Virtual: Track 2 Stream
+- Topics: eBPF, OpenTelemetry, observability, distributed tracing
+- Focus: Low-overhead observability without modifying application code
 
 *** 2:10 - 2:40 PM - ☕ Afternoon Break
 
-*** 2:40 - 3:20 PM - Parallel Tracks
+*** 2:35 - 3:15 PM - Parallel Tracks
 
 **** Track 1: "Rust and the Linux Kernel"
 - Integration progress and future plans
 
-**** TODO Track 2: "Building Developer Tools in Rust"
-- Creating better development experiences
+**** TODO [#B] Track 2: "To the Stratosphere and Beyond: Rust at 100,000ft" :ATTENDING:
+- Speaker: Konstantinos Stathopulos
+- Location: Regency A (Floor 7) | Virtual: Track 2 Stream
+- Topics: High-altitude balloon, embedded systems, education
+- Focus: Rust for microcontroller code in education contexts
 
 *** 3:25 - 4:05 PM - Community Session
 *"Rust Foundation Updates & Community Q&A"*
