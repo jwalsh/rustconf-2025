@@ -1,0 +1,322 @@
+#+TITLE: Rust-Python for Research
+#+FACILITATOR: Nicolas Posner
+#+EMAIL: nicolasposner@gmail.com
+#+TAGS: python research science interop performance
+#+OPTIONS: toc:2 num:t
+
+* Session Overview
+
+A discussion of the technical and organizational approaches to enhancing research codebases with Rust. How to bring Rust's performance and safety to the scientific Python ecosystem.
+
+** The Opportunity
+- Python dominates research
+- Performance bottlenecks common
+- Rust can accelerate critical paths
+- Maintain Python's ease of use
+
+* Current Landscape
+
+** Research Stack
+#+BEGIN_SRC python
+# Typical research code
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from scipy import stats
+
+# Performance bottleneck
+def slow_computation(data):
+    result = []
+    for i in range(len(data)):
+        for j in range(len(data)):
+            result.append(complex_calculation(data[i], data[j]))
+    return np.array(result)
+#+END_SRC
+
+** Integration Options
+| Tool | Use Case | Complexity | Performance |
+|------+----------+------------+-------------|
+| PyO3 | General | Medium | Excellent |
+| maturin | Packaging | Low | N/A |
+| numpy | Arrays | Medium | Excellent |
+| polars | DataFrames | Low | Excellent |
+
+* PyO3 Integration Patterns
+
+** Basic Extension
+#+BEGIN_SRC rust
+use pyo3::prelude::*;
+use numpy::{IntoPyArray, PyArray1, PyReadonlyArray1};
+
+#[pyfunction]
+fn fast_computation(py: Python, data: PyReadonlyArray1<f64>) -> PyResult<Py<PyArray1<f64>>> {
+    let data = data.as_array();
+    let result: Vec<f64> = data.iter()
+        .map(|&x| expensive_calculation(x))
+        .collect();
+    
+    Ok(result.into_pyarray(py).to_owned())
+}
+
+#[pymodule]
+fn rust_accelerator(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(fast_computation, m)?)?;
+    Ok(())
+}
+#+END_SRC
+
+** Python Usage
+#+BEGIN_SRC python
+import rust_accelerator
+import numpy as np
+
+# Seamless integration
+data = np.random.randn(10000)
+result = rust_accelerator.fast_computation(data)
+# 100x speedup!
+#+END_SRC
+
+* Research-Specific Patterns
+
+** Numerical Computing
+#+BEGIN_SRC rust
+use ndarray::{Array2, Axis};
+use rayon::prelude::*;
+
+#[pyfunction]
+fn parallel_matrix_operation(
+    py: Python,
+    matrix: PyReadonlyArray2<f64>,
+) -> PyResult<Py<PyArray2<f64>>> {
+    let matrix = matrix.as_array();
+    
+    // Parallel processing with Rayon
+    let result: Array2<f64> = matrix
+        .axis_iter(Axis(0))
+        .into_par_iter()
+        .map(|row| process_row(row))
+        .collect();
+    
+    Ok(result.into_pyarray(py).to_owned())
+}
+#+END_SRC
+
+** Statistical Computing
+#+BEGIN_SRC rust
+use statrs::distribution::{Normal, Continuous};
+
+#[pyclass]
+struct RustDistribution {
+    dist: Normal,
+}
+
+#[pymethods]
+impl RustDistribution {
+    #[new]
+    fn new(mean: f64, std: f64) -> Self {
+        Self {
+            dist: Normal::new(mean, std).unwrap(),
+        }
+    }
+    
+    fn pdf(&self, x: f64) -> f64 {
+        self.dist.pdf(x)
+    }
+    
+    fn sample(&self, n: usize) -> Vec<f64> {
+        (0..n).map(|_| self.dist.sample(&mut rand::thread_rng())).collect()
+    }
+}
+#+END_SRC
+
+** Machine Learning
+#+BEGIN_SRC rust
+use candle_core::{Device, Tensor};
+
+#[pyfunction]
+fn neural_network_forward(
+    py: Python,
+    input: PyReadonlyArray2<f32>,
+    weights: Vec<PyReadonlyArray2<f32>>,
+) -> PyResult<Py<PyArray1<f32>>> {
+    let device = Device::Cpu;
+    let mut x = Tensor::from_slice(
+        input.as_array().as_slice().unwrap(),
+        input.shape(),
+        &device,
+    )?;
+    
+    for weight in weights {
+        x = x.matmul(&Tensor::from_slice(
+            weight.as_array().as_slice().unwrap(),
+            weight.shape(),
+            &device,
+        )?)?;
+        x = x.relu()?;
+    }
+    
+    Ok(x.to_vec1::<f32>()?.into_pyarray(py).to_owned())
+}
+#+END_SRC
+
+* Organizational Adoption
+
+** Migration Strategy
+1. *Identify Bottlenecks*
+   #+BEGIN_SRC python
+   import cProfile
+   cProfile.run('slow_function()')
+   #+END_SRC
+
+2. *Prototype in Rust*
+   - Start with pure functions
+   - No complex state
+   - Clear interfaces
+
+3. *Incremental Migration*
+   - Keep Python tests
+   - Maintain compatibility
+   - Performance benchmarks
+
+4. *Team Training*
+   - Rust basics workshop
+   - PyO3 patterns
+   - Code review practices
+
+** Project Structure
+#+BEGIN_SRC
+research-project/
+├── python/
+│   ├── src/
+│   │   └── research_lib/
+│   └── tests/
+├── rust/
+│   ├── src/
+│   │   └── lib.rs
+│   └── Cargo.toml
+├── pyproject.toml
+└── build.py  # maturin
+#+END_SRC
+
+* Build and Distribution
+
+** Maturin Setup
+#+BEGIN_SRC toml
+# pyproject.toml
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "research-accelerator"
+requires-python = ">=3.8"
+dependencies = [
+    "numpy>=1.20",
+]
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+#+END_SRC
+
+** CI/CD Pipeline
+#+BEGIN_SRC yaml
+# GitHub Actions
+name: Build and Test
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, 3.10, 3.11]
+    
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+    - uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - run: pip install maturin pytest numpy
+    - run: maturin develop
+    - run: pytest
+#+END_SRC
+
+* Performance Case Studies
+
+** Before: Pure Python
+#+BEGIN_SRC python
+# 45 seconds for 10000 points
+def distance_matrix(points):
+    n = len(points)
+    distances = np.zeros((n, n))
+    for i in range(n):
+        for j in range(i+1, n):
+            dist = np.sqrt(np.sum((points[i] - points[j])**2))
+            distances[i, j] = dist
+            distances[j, i] = dist
+    return distances
+#+END_SRC
+
+** After: Rust Extension
+#+BEGIN_SRC rust
+// 0.3 seconds - 150x speedup!
+#[pyfunction]
+fn distance_matrix(points: PyReadonlyArray2<f64>) -> PyResult<Py<PyArray2<f64>>> {
+    let points = points.as_array();
+    let n = points.nrows();
+    let mut distances = Array2::zeros((n, n));
+    
+    distances.as_slice_mut().unwrap().par_chunks_mut(n).enumerate()
+        .for_each(|(i, row)| {
+            for j in (i+1)..n {
+                let dist = points.row(i).iter()
+                    .zip(points.row(j).iter())
+                    .map(|(a, b)| (a - b).powi(2))
+                    .sum::<f64>()
+                    .sqrt();
+                row[j] = dist;
+            }
+        });
+    
+    // Make symmetric
+    distances = &distances + &distances.t();
+    Ok(distances.into_pyarray(py).to_owned())
+}
+#+END_SRC
+
+* Discussion Topics
+
+** Technical
+- Zero-copy data sharing?
+- Async Python integration?
+- GPU acceleration?
+- Debugging mixed code?
+
+** Organizational
+- Training researchers?
+- Maintenance burden?
+- Documentation standards?
+- Performance targets?
+
+* Resources
+
+** Essential Libraries
+- PyO3: Python bindings
+- maturin: Build tool
+- numpy: Array interface
+- polars: DataFrames
+- arrow: Data interchange
+
+** Learning Path
+1. Rust basics
+2. PyO3 tutorial
+3. numpy integration
+4. Performance profiling
+5. Packaging/distribution
+
+---
+
+*Priority:* HIGH - Huge impact on research productivity

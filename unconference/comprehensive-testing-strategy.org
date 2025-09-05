@@ -1,0 +1,768 @@
+#+TITLE: Comprehensive Testing Strategy: From Unit Tests to Formal Verification
+#+AUTHOR: RustConf 2025 UnConference Synthesis
+#+TAGS: testing mutation-testing fuzzing property-testing formal-methods
+#+OPTIONS: toc:3 num:t
+
+* Overview: The Testing Spectrum
+
+This guide synthesizes insights from multiple UnConference sessions to create a comprehensive testing strategy for Rust projects.
+
+** Related Sessions
+- Making Stronger Rust Test Styles Easy (Zachary Pierce)
+- Automated "Clever" Property-Based Testing (Isaac Chen)
+- Semi-formal Proofs (Aleks Rudzitis)
+- Rust Test Compilation Performance (Ariel Ben Yehuda)
+
+** Testing Hierarchy
+#+BEGIN_SRC
+                    Formal Verification
+                          ↑
+                    Semi-formal Proofs
+                          ↑
+                  Property-Based Testing
+                          ↑
+                    Mutation Testing
+                          ↑
+                      Fuzzing
+                          ↑
+                 Integration Tests
+                          ↑
+                    Unit Tests
+#+END_SRC
+
+* Unit Testing: The Foundation
+
+** When to Use Unit Tests
+#+BEGIN_SRC rust
+// GOOD FOR: Pure functions with clear input/output
+#[test]
+fn test_calculate_discount() {
+    assert_eq!(calculate_discount(100.0, 0.2), 80.0);
+    assert_eq!(calculate_discount(0.0, 0.5), 0.0);
+    assert_eq!(calculate_discount(100.0, 0.0), 100.0);
+}
+
+// BAD FOR: Complex state machines (use property tests instead)
+#+END_SRC
+
+** Best Practices
+#+BEGIN_SRC rust
+// Use test fixtures for complex setup
+#[fixture]
+fn test_database() -> Database {
+    let db = Database::in_memory();
+    db.seed_test_data();
+    db
+}
+
+#[rstest]
+fn test_user_query(test_database: Database) {
+    let user = test_database.find_user("alice").unwrap();
+    assert_eq!(user.email, "alice@example.com");
+}
+#+END_SRC
+
+* Fuzzing: Finding Edge Cases
+
+** When to Use Fuzzing
+
+*** 1. Parser/Deserializer Testing
+#+BEGIN_SRC rust
+// CRITICAL: Any code that accepts untrusted input
+#[derive(Debug, Arbitrary)]
+struct ParseInput {
+    data: Vec<u8>,
+}
+
+fuzz_target!(|input: ParseInput| {
+    // Should never panic, regardless of input
+    let _ = parse_protocol(&input.data);
+});
+
+// Real bug found: Stack overflow on deeply nested JSON
+// Fix: Add recursion limit
+#+END_SRC
+
+*** 2. Compression/Encoding Algorithms
+#+BEGIN_SRC rust
+// CRITICAL: Round-trip properties must hold
+fuzz_target!(|data: &[u8]| {
+    let compressed = compress(data);
+    let decompressed = decompress(&compressed).unwrap();
+    assert_eq!(data, decompressed.as_slice());
+});
+
+// Real bug found: Integer overflow in length encoding
+// Fix: Use checked arithmetic
+#+END_SRC
+
+*** 3. Cryptographic Code
+#+BEGIN_SRC rust
+// CRITICAL: Timing attacks, edge cases
+fuzz_target!(|input: (Vec<u8>, Vec<u8>)| {
+    let (key, plaintext) = input;
+    if key.len() != 32 { return; }
+    
+    let ciphertext = encrypt(&key, &plaintext);
+    let decrypted = decrypt(&key, &ciphertext).unwrap();
+    assert_eq!(plaintext, decrypted);
+    
+    // Check constant-time property
+    assert_constant_time!(encrypt(&key, &plaintext));
+});
+#+END_SRC
+
+** Fuzzing Strategy
+#+BEGIN_SRC toml
+# .cargo/fuzzing.toml
+[fuzzing]
+# Continuous fuzzing configuration
+targets = [
+    "parse_input",
+    "deserialize_message",
+    "decode_image",
+]
+
+[fuzzing.schedule]
+# Run different fuzzers based on risk
+parse_input = { duration = "1h", daily = true }
+crypto_operations = { duration = "4h", daily = true }
+compression = { duration = "30m", weekly = true }
+#+END_SRC
+
+* Mutation Testing: Testing Your Tests
+
+** When to Use Mutation Testing
+
+*** 1. Critical Business Logic
+#+BEGIN_SRC rust
+// Original function
+fn calculate_tax(income: f64, rate: f64) -> f64 {
+    if income <= 0.0 {
+        return 0.0;
+    }
+    income * rate
+}
+
+// Mutations to test:
+// 1. Change <= to <  (boundary mutation)
+// 2. Change * to +   (operator mutation)
+// 3. Remove if check (statement deletion)
+// 4. Change 0.0 to 1.0 (constant mutation)
+
+#[test]
+fn test_calculate_tax() {
+    // This test would catch mutation #2 and #4
+    assert_eq!(calculate_tax(1000.0, 0.2), 200.0);
+    
+    // This test would catch mutation #1
+    assert_eq!(calculate_tax(0.0, 0.2), 0.0);
+    
+    // Need this to catch mutation #3
+    assert_eq!(calculate_tax(-100.0, 0.2), 0.0);
+}
+#+END_SRC
+
+*** 2. State Machines
+#+BEGIN_SRC rust
+// State machine with complex transitions
+enum State {
+    Idle,
+    Processing,
+    Complete,
+    Error,
+}
+
+impl StateMachine {
+    fn transition(&mut self, event: Event) {
+        match (&self.state, event) {
+            (State::Idle, Event::Start) => self.state = State::Processing,
+            (State::Processing, Event::Finish) => self.state = State::Complete,
+            (State::Processing, Event::Error) => self.state = State::Error,
+            _ => {} // Mutation: What if we remove this?
+        }
+    }
+}
+
+// Mutation testing reveals: Need tests for invalid transitions
+#[test]
+fn test_invalid_transitions() {
+    let mut sm = StateMachine::new();
+    sm.state = State::Complete;
+    sm.transition(Event::Start); // Should stay Complete
+    assert_eq!(sm.state, State::Complete);
+}
+#+END_SRC
+
+*** 3. Algorithms with Invariants
+#+BEGIN_SRC rust
+// Binary search with mutations
+fn binary_search(arr: &[i32], target: i32) -> Option<usize> {
+    let mut left = 0;
+    let mut right = arr.len(); // Mutation: Change to arr.len() - 1
+    
+    while left < right { // Mutation: Change to <=
+        let mid = left + (right - left) / 2; // Mutation: Change / to >>
+        
+        if arr[mid] == target {
+            return Some(mid);
+        } else if arr[mid] < target { // Mutation: Change < to <=
+            left = mid + 1; // Mutation: Remove + 1
+        } else {
+            right = mid; // Mutation: Change to mid - 1
+        }
+    }
+    None
+}
+
+// Comprehensive tests needed to kill all mutants
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proptest::prelude::*;
+    
+    proptest! {
+        #[test]
+        fn test_binary_search_property(
+            mut arr: Vec<i32>,
+            target: i32
+        ) {
+            arr.sort();
+            let result = binary_search(&arr, target);
+            
+            match result {
+                Some(idx) => {
+                    assert_eq!(arr[idx], target);
+                    // Verify it's the first occurrence
+                    assert!(idx == 0 || arr[idx - 1] != target);
+                }
+                None => {
+                    assert!(!arr.contains(&target));
+                }
+            }
+        }
+    }
+}
+#+END_SRC
+
+** Mutation Testing Configuration
+#+BEGIN_SRC toml
+# cargo-mutants.toml
+[mutants]
+# Focus on critical modules
+include_modules = [
+    "auth",
+    "payment",
+    "crypto",
+]
+
+# Mutation operators to apply
+operators = [
+    "arithmetic",    # +, -, *, /
+    "comparison",    # <, <=, >, >=, ==, !=
+    "logical",       # &&, ||, !
+    "boundary",      # Off-by-one errors
+    "return",        # Return value mutations
+]
+
+# Minimum test strength required
+minimum_score = 0.85  # 85% of mutants must be killed
+#+END_SRC
+
+* Property-Based Testing: Discovering Invariants
+
+** When to Use Property Testing
+
+*** 1. Data Structure Invariants
+#+BEGIN_SRC rust
+use proptest::prelude::*;
+
+// Red-Black Tree invariants
+#[derive(Debug, Clone)]
+struct RBTree<T: Ord> {
+    root: Option<Box<Node<T>>>,
+}
+
+proptest! {
+    #[test]
+    fn rb_tree_maintains_invariants(
+        operations: Vec<TreeOperation<i32>>
+    ) {
+        let mut tree = RBTree::new();
+        
+        for op in operations {
+            match op {
+                TreeOperation::Insert(val) => tree.insert(val),
+                TreeOperation::Delete(val) => tree.delete(val),
+            }
+            
+            // Properties that must ALWAYS hold
+            prop_assert!(tree.is_valid_rb_tree());
+            prop_assert!(tree.is_balanced());
+            prop_assert!(tree.is_sorted());
+            prop_assert_eq!(
+                tree.count_nodes(),
+                tree.iter().count()
+            );
+        }
+    }
+}
+
+// Specific property: Black height
+fn check_black_height<T: Ord>(tree: &RBTree<T>) -> bool {
+    fn black_height<T>(node: Option<&Box<Node<T>>>) -> Option<usize> {
+        match node {
+            None => Some(1),
+            Some(n) => {
+                let left_height = black_height(n.left.as_ref())?;
+                let right_height = black_height(n.right.as_ref())?;
+                if left_height != right_height {
+                    return None;
+                }
+                Some(left_height + if n.is_black { 1 } else { 0 })
+            }
+        }
+    }
+    black_height(tree.root.as_ref()).is_some()
+}
+#+END_SRC
+
+*** 2. Serialization Round-trips
+#+BEGIN_SRC rust
+proptest! {
+    #[test]
+    fn serialization_roundtrip(
+        data: MyComplexType
+    ) {
+        // JSON round-trip
+        let json = serde_json::to_string(&data).unwrap();
+        let decoded: MyComplexType = serde_json::from_str(&json).unwrap();
+        prop_assert_eq!(data, decoded);
+        
+        // Binary round-trip
+        let binary = bincode::serialize(&data).unwrap();
+        let decoded: MyComplexType = bincode::deserialize(&binary).unwrap();
+        prop_assert_eq!(data, decoded);
+        
+        // Property: JSON is human-readable
+        prop_assert!(json.is_ascii());
+        
+        // Property: Binary is more compact
+        prop_assert!(binary.len() <= json.len());
+    }
+}
+#+END_SRC
+
+*** 3. Concurrent Operations
+#+BEGIN_SRC rust
+proptest! {
+    #[test]
+    fn concurrent_counter_linearizable(
+        operations: Vec<(ThreadId, CounterOp)>
+    ) {
+        let counter = Arc::new(AtomicCounter::new());
+        let mut handles = vec![];
+        
+        // Group operations by thread
+        let by_thread = group_by_thread(operations);
+        
+        for (thread_id, ops) in by_thread {
+            let counter = counter.clone();
+            handles.push(thread::spawn(move || {
+                for op in ops {
+                    match op {
+                        CounterOp::Increment => counter.increment(),
+                        CounterOp::Decrement => counter.decrement(),
+                        CounterOp::Read => { counter.read(); }
+                    }
+                }
+            }));
+        }
+        
+        for handle in handles {
+            handle.join().unwrap();
+        }
+        
+        // Property: Final value matches sequential execution
+        let sequential_result = execute_sequentially(&operations);
+        prop_assert_eq!(counter.read(), sequential_result);
+    }
+}
+#+END_SRC
+
+** Property Discovery Patterns
+#+BEGIN_SRC rust
+// Algebraic properties
+trait AlgebraicProperties: Sized + Eq {
+    // Associativity: (a ⊕ b) ⊕ c = a ⊕ (b ⊕ c)
+    fn check_associative(a: Self, b: Self, c: Self, op: fn(Self, Self) -> Self) -> bool {
+        op(op(a, b), c) == op(a, op(b, c))
+    }
+    
+    // Commutativity: a ⊕ b = b ⊕ a
+    fn check_commutative(a: Self, b: Self, op: fn(Self, Self) -> Self) -> bool {
+        op(a, b) == op(b, a)
+    }
+    
+    // Identity: a ⊕ id = a
+    fn check_identity(a: Self, identity: Self, op: fn(Self, Self) -> Self) -> bool {
+        op(a, identity) == a
+    }
+}
+
+// Metamorphic properties
+fn test_sort_metamorphic<T: Ord + Clone>(input: Vec<T>) {
+    let sorted_once = {
+        let mut v = input.clone();
+        v.sort();
+        v
+    };
+    
+    let sorted_twice = {
+        let mut v = sorted_once.clone();
+        v.sort();
+        v
+    };
+    
+    // Idempotence
+    assert_eq!(sorted_once, sorted_twice);
+    
+    // Permutation
+    assert_eq!(input.len(), sorted_once.len());
+    
+    // Order preservation for duplicates
+    let mut seen = HashMap::new();
+    for (i, item) in input.iter().enumerate() {
+        seen.entry(item).or_insert_with(Vec::new).push(i);
+    }
+    // Check that relative order of equal elements is preserved (stable sort)
+}
+#+END_SRC
+
+* Semi-Formal Verification: Bounded Proofs
+
+** When to Use Semi-Formal Methods
+
+*** 1. Safety-Critical Functions
+#+BEGIN_SRC rust
+use kani::*;
+
+#[kani::proof]
+fn verify_safe_divide() {
+    let dividend: i32 = kani::any();
+    let divisor: i32 = kani::any();
+    
+    // Precondition
+    kani::assume(divisor != 0);
+    
+    // Function under test
+    let result = safe_divide(dividend, divisor);
+    
+    // Postconditions
+    match result {
+        Ok(quotient) => {
+            // Verify correctness
+            assert!(dividend == quotient * divisor + (dividend % divisor));
+            // Verify no overflow
+            assert!(quotient <= i32::MAX && quotient >= i32::MIN);
+        }
+        Err(_) => {
+            // Should never error with non-zero divisor
+            unreachable!("Division failed with non-zero divisor");
+        }
+    }
+}
+
+// Verify array bounds
+#[kani::proof]
+fn verify_array_access() {
+    const SIZE: usize = 10;
+    let arr: [i32; SIZE] = kani::any();
+    let index: usize = kani::any();
+    
+    if index < SIZE {
+        // Safe access should never panic
+        let _value = arr[index];
+    } else {
+        // Out of bounds should be caught
+        assert!(get_safe(&arr, index).is_none());
+    }
+}
+#+END_SRC
+
+*** 2. Cryptographic Properties
+#+BEGIN_SRC rust
+#[kani::proof]
+fn verify_constant_time_compare() {
+    let a: [u8; 32] = kani::any();
+    let b: [u8; 32] = kani::any();
+    
+    // Measure abstract "time"
+    kani::record_time_start();
+    let result = constant_time_compare(&a, &b);
+    kani::record_time_end();
+    
+    // Time should not depend on values
+    kani::assert_constant_time();
+    
+    // But result should be correct
+    assert_eq!(result, a == b);
+}
+#+END_SRC
+
+*** 3. Memory Safety Verification
+#+BEGIN_SRC rust
+#[kani::proof]
+fn verify_no_memory_leaks() {
+    let size: usize = kani::any();
+    kani::assume(size > 0 && size < 1000);
+    
+    let mut vec = Vec::with_capacity(size);
+    
+    for i in 0..size {
+        vec.push(i);
+        // Verify capacity management
+        assert!(vec.len() <= vec.capacity());
+        assert!(vec.capacity() >= size || vec.capacity() == vec.len());
+    }
+    
+    // Verify drop is safe
+    drop(vec);
+    kani::assert_no_leaks();
+}
+#+END_SRC
+
+* Integration Strategy: Layered Testing
+
+** Test Pyramid Implementation
+#+BEGIN_SRC rust
+// Level 1: Unit Tests (fast, numerous)
+#[cfg(test)]
+mod unit_tests {
+    #[test]
+    fn test_simple_cases() {
+        // Run thousands of these
+        assert_eq!(add(2, 2), 4);
+    }
+}
+
+// Level 2: Property Tests (slower, thorough)
+#[cfg(test)]
+mod property_tests {
+    proptest! {
+        #[test]
+        fn test_invariants(input: ComplexInput) {
+            // Run hundreds of these
+            check_invariants(process(input));
+        }
+    }
+}
+
+// Level 3: Fuzz Tests (continuous)
+#[cfg(fuzzing)]
+mod fuzz_tests {
+    fuzz_target!(|data: &[u8]| {
+        // Run continuously in CI
+        let _ = parse_untrusted(data);
+    });
+}
+
+// Level 4: Mutation Tests (weekly)
+#[cfg(mutation)]
+mod mutation_tests {
+    // Run weekly to verify test quality
+    // cargo mutants --all
+}
+
+// Level 5: Formal Verification (critical paths)
+#[cfg(kani)]
+mod formal_proofs {
+    #[kani::proof]
+    fn verify_critical_invariants() {
+        // Prove safety properties
+    }
+}
+#+END_SRC
+
+** CI/CD Pipeline
+#+BEGIN_SRC yaml
+name: Comprehensive Testing
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  quick_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Unit Tests
+        run: cargo test --lib
+        timeout-minutes: 5
+      
+      - name: Doc Tests
+        run: cargo test --doc
+        timeout-minutes: 2
+
+  property_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Property Tests
+        run: cargo test --features proptest
+        timeout-minutes: 15
+
+  fuzz_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Quick Fuzz
+        run: |
+          cargo +nightly fuzz run parser -- -max_total_time=300
+          cargo +nightly fuzz run deserializer -- -max_total_time=300
+        timeout-minutes: 10
+
+  mutation_tests:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'  # Weekly
+    steps:
+      - name: Mutation Testing
+        run: cargo mutants --timeout 300 --parallel
+        timeout-minutes: 120
+
+  formal_verification:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kani Proofs
+        run: cargo kani --tests
+        timeout-minutes: 30
+#+END_SRC
+
+* Tool Selection Guide
+
+** Decision Matrix
+| Testing Need | Recommended Tool | When to Use | Example |
+|--------------+------------------+-------------+---------|
+| Basic correctness | Unit tests | Always | Function output |
+| Edge cases | Fuzzing | Parsers, codecs | Protocol parsing |
+| Test quality | Mutation testing | Critical logic | Business rules |
+| Invariants | Property testing | Data structures | Collections |
+| Safety proofs | Kani/Prusti | Safety-critical | Memory safety |
+| Performance | Criterion | Hot paths | Algorithms |
+| Concurrency | Loom | Concurrent code | Lock-free structures |
+
+** Cost-Benefit Analysis
+#+BEGIN_SRC
+High Value + Low Cost:
+- Unit tests for pure functions
+- Property tests for serialization
+- Fuzzing for parsers
+
+High Value + High Cost:
+- Formal verification for crypto
+- Mutation testing for critical paths
+- Property tests for concurrent code
+
+Low Value:
+- 100% code coverage for UI code
+- Formal proofs for CRUD operations
+- Mutation testing for logging
+#+END_SRC
+
+* Real-World Case Studies
+
+** Case 1: Parser Library
+#+BEGIN_SRC rust
+// Comprehensive testing strategy for a parser
+
+// 1. Unit tests for basic parsing
+#[test]
+fn test_parse_integer() {
+    assert_eq!(parse("123"), Ok(Value::Int(123)));
+}
+
+// 2. Property tests for correctness
+proptest! {
+    #[test]
+    fn parse_print_roundtrip(value: Value) {
+        let printed = value.to_string();
+        let parsed = parse(&printed).unwrap();
+        prop_assert_eq!(value, parsed);
+    }
+}
+
+// 3. Fuzzing for robustness
+fuzz_target!(|data: &[u8]| {
+    if let Ok(s) = std::str::from_utf8(data) {
+        let _ = parse(s); // Should never panic
+    }
+});
+
+// 4. Mutation testing for test quality
+// Reveals: Need tests for error cases
+
+// 5. Semi-formal verification for memory safety
+#[kani::proof]
+fn verify_no_buffer_overflow() {
+    let input: String = kani::any();
+    kani::assume(input.len() < 1000);
+    let _ = parse(&input);
+    kani::assert_no_overflow();
+}
+#+END_SRC
+
+** Case 2: Cryptographic Library
+#+BEGIN_SRC rust
+// Different emphasis for crypto code
+
+// 1. Formal verification FIRST
+#[kani::proof]
+fn verify_encryption_correctness() {
+    let key: [u8; 32] = kani::any();
+    let plaintext: Vec<u8> = kani::any();
+    kani::assume(plaintext.len() < 1024);
+    
+    let ciphertext = encrypt(&key, &plaintext);
+    let decrypted = decrypt(&key, &ciphertext);
+    assert_eq!(plaintext, decrypted);
+}
+
+// 2. Constant-time verification
+#[kani::proof]
+fn verify_constant_time() {
+    // Verify no timing leaks
+}
+
+// 3. Test vectors from standards
+#[test]
+fn test_nist_vectors() {
+    for vector in NIST_TEST_VECTORS {
+        assert_eq!(
+            encrypt(&vector.key, &vector.plaintext),
+            vector.expected_ciphertext
+        );
+    }
+}
+
+// 4. Differential testing against reference
+#[test]
+fn test_against_openssl() {
+    // Compare with known-good implementation
+}
+#+END_SRC
+
+* Future Directions
+
+** Emerging Techniques
+1. **Concolic Testing**: Combining concrete and symbolic execution
+2. **Differential Testing**: Comparing implementations
+3. **Metamorphic Testing**: Discovering relationships
+4. **Statistical Testing**: Probabilistic properties
+
+** Tool Integration
+- Unified test framework
+- IDE integration for all testing modes
+- Automated property discovery
+- ML-guided test generation
+
+---
+
+*Priority:* CRITICAL - Comprehensive testing is essential for Rust reliability

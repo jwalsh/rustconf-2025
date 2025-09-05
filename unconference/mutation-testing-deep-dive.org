@@ -1,0 +1,691 @@
+#+TITLE: Mutation Testing Deep Dive: Testing Your Tests by Breaking Your Code
+#+AUTHOR: RustConf 2025 UnConference
+#+TAGS: mutation-testing test-quality cargo-mutants
+#+OPTIONS: toc:2 num:t
+
+* What is Mutation Testing?
+
+Mutation testing verifies test quality by intentionally introducing bugs (mutations) into your IMPLEMENTATION code and checking if your tests catch them. If a mutated version passes all tests, you have inadequate test coverage.
+
+** The Process
+1. Take working implementation code
+2. Create "mutants" by making small changes
+3. Run tests against each mutant
+4. If tests pass with mutant = inadequate tests
+5. If tests fail with mutant = tests "killed" the mutant
+
+* How Mutation Testing Works
+
+** Original Implementation
+#+BEGIN_SRC rust
+// src/calculator.rs - IMPLEMENTATION CODE
+pub fn calculate_discount(price: f64, discount_percent: f64) -> f64 {
+    if discount_percent < 0.0 || discount_percent > 100.0 {
+        return price;
+    }
+    
+    let discount_amount = price * (discount_percent / 100.0);
+    price - discount_amount
+}
+
+pub fn is_prime(n: u32) -> bool {
+    if n <= 1 {
+        return false;
+    }
+    
+    if n == 2 {
+        return true;
+    }
+    
+    if n % 2 == 0 {
+        return false;
+    }
+    
+    let sqrt_n = (n as f64).sqrt() as u32;
+    for i in (3..=sqrt_n).step_by(2) {
+        if n % i == 0 {
+            return false;
+        }
+    }
+    
+    true
+}
+#+END_SRC
+
+** Mutations Applied to Implementation
+#+BEGIN_SRC rust
+// MUTANT 1: Change <= to < (Boundary mutation)
+pub fn calculate_discount(price: f64, discount_percent: f64) -> f64 {
+    if discount_percent < 0.0 || discount_percent > 100.0 {  // UNCHANGED
+        return price;
+    }
+    
+    let discount_amount = price * (discount_percent / 100.0);
+    price - discount_amount
+}
+
+// MUTANT 2: Change - to + (Arithmetic operator mutation)
+pub fn calculate_discount(price: f64, discount_percent: f64) -> f64 {
+    if discount_percent < 0.0 || discount_percent > 100.0 {
+        return price;
+    }
+    
+    let discount_amount = price * (discount_percent / 100.0);
+    price + discount_amount  // MUTATED: - changed to +
+}
+
+// MUTANT 3: Change 100.0 to 99.0 (Constant mutation)
+pub fn calculate_discount(price: f64, discount_percent: f64) -> f64 {
+    if discount_percent < 0.0 || discount_percent > 99.0 {  // MUTATED: 100.0 to 99.0
+        return price;
+    }
+    
+    let discount_amount = price * (discount_percent / 100.0);
+    price - discount_amount
+}
+
+// MUTANT 4: Remove entire if statement (Statement deletion)
+pub fn calculate_discount(price: f64, discount_percent: f64) -> f64 {
+    // MUTATED: Entire validation check removed
+    let discount_amount = price * (discount_percent / 100.0);
+    price - discount_amount
+}
+
+// MUTANT 5: For is_prime - Change <= to < 
+pub fn is_prime(n: u32) -> bool {
+    if n < 1 {  // MUTATED: <= changed to <
+        return false;
+    }
+    // ... rest unchanged
+}
+
+// MUTANT 6: For is_prime - Change == to !=
+pub fn is_prime(n: u32) -> bool {
+    if n <= 1 {
+        return false;
+    }
+    
+    if n != 2 {  // MUTATED: == changed to !=
+        return true;  // This breaks the logic completely!
+    }
+    // ... rest unchanged
+}
+#+END_SRC
+
+** Tests That Kill Mutants
+#+BEGIN_SRC rust
+// tests/calculator_test.rs - TEST CODE (never mutated!)
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // This test KILLS Mutant 2 (- to +)
+    #[test]
+    fn test_basic_discount() {
+        assert_eq!(calculate_discount(100.0, 20.0), 80.0);
+        // Mutant 2 would return 120.0, so test fails ✓
+    }
+    
+    // This test KILLS Mutant 3 (100.0 to 99.0)
+    #[test]
+    fn test_maximum_discount() {
+        assert_eq!(calculate_discount(100.0, 100.0), 0.0);
+        // Mutant 3 would return 100.0 (no discount), so test fails ✓
+    }
+    
+    // This test KILLS Mutant 4 (removed validation)
+    #[test]
+    fn test_invalid_discount() {
+        assert_eq!(calculate_discount(100.0, -10.0), 100.0);
+        assert_eq!(calculate_discount(100.0, 150.0), 100.0);
+        // Mutant 4 would apply invalid discounts, so test fails ✓
+    }
+    
+    // This test KILLS Mutant 5 (n <= 1 to n < 1)
+    #[test]
+    fn test_one_is_not_prime() {
+        assert_eq!(is_prime(1), false);
+        // Mutant 5 would return true for 1, so test fails ✓
+    }
+    
+    // This test KILLS Mutant 6 (n == 2 to n != 2)
+    #[test]
+    fn test_two_is_prime() {
+        assert_eq!(is_prime(2), true);
+        // Mutant 6 would return false for 2, so test fails ✓
+    }
+}
+#+END_SRC
+
+** Missing Tests (Surviving Mutants)
+#+BEGIN_SRC rust
+// SURVIVING MUTANT: Change step_by(2) to step_by(3)
+pub fn is_prime(n: u32) -> bool {
+    // ...
+    for i in (3..=sqrt_n).step_by(3) {  // MUTATED: 2 to 3
+        if n % i == 0 {
+            return false;
+        }
+    }
+    true
+}
+
+// This mutant SURVIVES because we don't have enough test cases!
+// We need to add:
+#[test]
+fn test_composite_numbers() {
+    assert!(!is_prime(9));   // 3×3
+    assert!(!is_prime(15));  // 3×5
+    assert!(!is_prime(21));  // 3×7
+    assert!(!is_prime(25));  // 5×5
+    assert!(!is_prime(49));  // 7×7
+    // Now the step_by(3) mutant would incorrectly call 25 and 49 prime!
+}
+#+END_SRC
+
+* Types of Mutations
+
+** 1. Arithmetic Operator Mutations
+#+BEGIN_SRC rust
+// Original implementation
+fn calculate_area(width: f64, height: f64) -> f64 {
+    width * height  // Will be mutated
+}
+
+// Mutations applied by cargo-mutants:
+// - Change * to +
+// - Change * to -
+// - Change * to /
+// - Change * to %
+
+// Test needed to kill these mutants:
+#[test]
+fn test_area_calculation() {
+    assert_eq!(calculate_area(5.0, 4.0), 20.0);
+    // + would give 9.0 ✗
+    // - would give 1.0 ✗
+    // / would give 1.25 ✗
+}
+#+END_SRC
+
+** 2. Comparison Operator Mutations
+#+BEGIN_SRC rust
+// Original implementation
+fn can_vote(age: u32) -> bool {
+    age >= 18  // Will be mutated
+}
+
+// Mutations:
+// - Change >= to >
+// - Change >= to <
+// - Change >= to <=
+// - Change >= to ==
+// - Change >= to !=
+
+// Tests needed:
+#[test]
+fn test_voting_age() {
+    assert!(can_vote(18));   // Kills > mutation
+    assert!(can_vote(19));   // Kills == mutation
+    assert!(!can_vote(17));  // Kills < and <= mutations
+}
+#+END_SRC
+
+** 3. Logical Operator Mutations
+#+BEGIN_SRC rust
+// Original implementation
+fn is_valid_password(password: &str) -> bool {
+    password.len() >= 8 && password.contains(char::is_numeric)
+    // && will be mutated to ||
+}
+
+// Test to kill || mutation:
+#[test]
+fn test_password_requirements() {
+    assert!(!is_valid_password("short"));    // Fails both conditions
+    assert!(!is_valid_password("longenoughbutnonumbers")); // Fails one
+    assert!(!is_valid_password("1234567"));  // Fails other
+    assert!(is_valid_password("password123")); // Passes both
+    // || mutation would accept "short" and "1234567"
+}
+#+END_SRC
+
+** 4. Boundary Mutations
+#+BEGIN_SRC rust
+// Original implementation
+fn grade_score(score: u32) -> char {
+    if score >= 90 {
+        'A'
+    } else if score >= 80 {
+        'B'
+    } else if score >= 70 {
+        'C'
+    } else if score >= 60 {
+        'D'
+    } else {
+        'F'
+    }
+}
+
+// Mutations: >= becomes >
+// Tests must check boundaries:
+#[test]
+fn test_grade_boundaries() {
+    assert_eq!(grade_score(90), 'A');  // Kills >= to > at 90
+    assert_eq!(grade_score(89), 'B');  
+    assert_eq!(grade_score(80), 'B');  // Kills >= to > at 80
+    assert_eq!(grade_score(79), 'C');
+    // ... test all boundaries
+}
+#+END_SRC
+
+** 5. Return Value Mutations
+#+BEGIN_SRC rust
+// Original implementation
+fn is_even(n: u32) -> bool {
+    n % 2 == 0  // Return value will be mutated
+}
+
+// Mutations:
+// - Always return true
+// - Always return false
+// - Return !result
+
+// Tests needed:
+#[test]
+fn test_even_odd() {
+    assert!(is_even(2));   // Kills "always false"
+    assert!(!is_even(3));  // Kills "always true"
+    assert!(is_even(0));   // Additional coverage
+}
+#+END_SRC
+
+** 6. Constant Mutations
+#+BEGIN_SRC rust
+// Original implementation
+const MAX_RETRIES: u32 = 3;
+
+fn retry_operation<F>(mut operation: F) -> Result<(), Error>
+where
+    F: FnMut() -> Result<(), Error>
+{
+    for attempt in 0..MAX_RETRIES {
+        if operation().is_ok() {
+            return Ok(());
+        }
+    }
+    Err(Error::MaxRetriesExceeded)
+}
+
+// Mutations: 3 becomes 2, 4, 0, etc.
+// Test needs to verify exact retry count:
+#[test]
+fn test_retry_count() {
+    let counter = Arc::new(AtomicUsize::new(0));
+    let c = counter.clone();
+    
+    let result = retry_operation(|| {
+        c.fetch_add(1, Ordering::SeqCst);
+        Err(Error::Temporary)
+    });
+    
+    assert!(result.is_err());
+    assert_eq!(counter.load(Ordering::SeqCst), 3); // Exactly 3 attempts
+}
+#+END_SRC
+
+* Using cargo-mutants
+
+** Installation and Setup
+#+BEGIN_SRC bash
+# Install cargo-mutants
+cargo install cargo-mutants
+
+# Basic usage
+cargo mutants
+
+# Run in parallel for speed
+cargo mutants --parallel
+
+# Test specific functions
+cargo mutants --regex "calculate_.*"
+
+# Generate detailed report
+cargo mutants --output mutants-report/
+#+END_SRC
+
+** Configuration
+#+BEGIN_SRC toml
+# .cargo/mutants.toml
+[mutants]
+# Timeout for each test run (seconds)
+timeout = 30
+
+# Exclude certain files
+exclude_paths = [
+    "src/generated/*",
+    "src/vendor/*",
+]
+
+# Exclude certain functions
+exclude_functions = [
+    "debug_*",
+    "log_*",
+]
+
+# Minimum mutation score required
+minimum_score = 0.85
+
+# Types of mutations to apply
+mutations = [
+    "arithmetic",
+    "comparison", 
+    "logical",
+    "return",
+]
+#+END_SRC
+
+** Interpreting Results
+#+BEGIN_SRC
+cargo mutants
+
+Found 127 mutants to test
+Building mutants in parallel...
+
+Testing mutants:
+  [=========================] 127/127
+
+Results:
+  Killed: 103
+  Survived: 18
+  Timeout: 4
+  Unviable: 2
+
+Mutation Score: 85.1%
+
+Surviving mutants:
+  src/parser.rs:45: replaced >= with > in parse_integer
+  src/validator.rs:23: replaced && with || in validate_input
+  src/calculator.rs:67: replaced * with + in calculate_total
+  ... (15 more)
+
+Run with --show-survivors for details
+#+END_SRC
+
+* Real-World Example: URL Parser
+
+** Implementation to Test
+#+BEGIN_SRC rust
+// src/url_parser.rs
+pub struct Url {
+    scheme: String,
+    host: String,
+    port: Option<u16>,
+    path: String,
+}
+
+impl Url {
+    pub fn parse(input: &str) -> Result<Url, ParseError> {
+        // Find scheme
+        let scheme_end = input.find("://")
+            .ok_or(ParseError::MissingScheme)?;
+        let scheme = &input[0..scheme_end];
+        
+        // Validate scheme
+        if scheme != "http" && scheme != "https" {
+            return Err(ParseError::InvalidScheme);
+        }
+        
+        // Parse authority
+        let after_scheme = &input[scheme_end + 3..];
+        let path_start = after_scheme.find('/').unwrap_or(after_scheme.len());
+        let authority = &after_scheme[0..path_start];
+        
+        // Parse host and port
+        let (host, port) = if let Some(colon_pos) = authority.rfind(':') {
+            let host = &authority[0..colon_pos];
+            let port_str = &authority[colon_pos + 1..];
+            let port = port_str.parse::<u16>()
+                .map_err(|_| ParseError::InvalidPort)?;
+            
+            // Validate port range
+            if port == 0 || port > 65535 {
+                return Err(ParseError::InvalidPort);
+            }
+            
+            (host.to_string(), Some(port))
+        } else {
+            (authority.to_string(), None)
+        };
+        
+        // Get path
+        let path = if path_start < after_scheme.len() {
+            after_scheme[path_start..].to_string()
+        } else {
+            "/".to_string()
+        };
+        
+        Ok(Url {
+            scheme: scheme.to_string(),
+            host,
+            port,
+            path,
+        })
+    }
+}
+#+END_SRC
+
+** Mutations and Required Tests
+#+BEGIN_SRC rust
+// Mutation 1: Change + 3 to + 2 (wrong offset after ://)
+// Test needed:
+#[test]
+fn test_scheme_parsing() {
+    let url = Url::parse("http://example.com").unwrap();
+    assert_eq!(url.host, "example.com");
+    // With +2, would get "/" as first char of host
+}
+
+// Mutation 2: Change != to == in scheme validation
+// Test needed:
+#[test]
+fn test_invalid_scheme() {
+    assert!(Url::parse("ftp://example.com").is_err());
+    assert!(Url::parse("file://example.com").is_err());
+    // With ==, these would incorrectly pass
+}
+
+// Mutation 3: Change rfind to find for colon
+// Test needed:
+#[test]
+fn test_ipv6_address() {
+    let url = Url::parse("http://[::1]:8080/path").unwrap();
+    assert_eq!(url.host, "[::1]");
+    assert_eq!(url.port, Some(8080));
+    // find would match first : in IPv6 address
+}
+
+// Mutation 4: Change > 65535 to >= 65535
+// Test needed:
+#[test]
+fn test_max_port() {
+    assert!(Url::parse("http://example.com:65535").is_ok());
+    assert!(Url::parse("http://example.com:65536").is_err());
+    // >= would reject valid port 65535
+}
+
+// Mutation 5: Remove port == 0 check
+// Test needed:
+#[test]
+fn test_zero_port() {
+    assert!(Url::parse("http://example.com:0").is_err());
+    // Without check, would accept invalid port 0
+}
+
+// Mutation 6: Change unwrap_or to unwrap_or(0)
+// Test needed:
+#[test]
+fn test_no_path() {
+    let url = Url::parse("http://example.com").unwrap();
+    assert_eq!(url.path, "/");
+    // With unwrap_or(0), would crash or give wrong result
+}
+#+END_SRC
+
+* Mutation Testing Strategy
+
+** 1. Start with Critical Code
+#+BEGIN_SRC bash
+# Focus on business logic first
+cargo mutants --file src/payment.rs
+cargo mutants --file src/authentication.rs
+cargo mutants --file src/validation.rs
+#+END_SRC
+
+** 2. Iterative Improvement
+#+BEGIN_SRC rust
+// Step 1: Run mutation testing
+// Step 2: Find surviving mutants
+// Step 3: Add tests to kill them
+// Step 4: Repeat
+
+// Example: Surviving mutant in date validation
+fn is_leap_year(year: u32) -> bool {
+    year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+    // Mutant: Change || to &&
+}
+
+// Add test to kill mutant:
+#[test]
+fn test_century_leap_years() {
+    assert!(is_leap_year(2000));  // Divisible by 400
+    assert!(!is_leap_year(1900)); // Divisible by 100 but not 400
+    // The && mutant would incorrectly reject 2000
+}
+#+END_SRC
+
+** 3. CI Integration
+#+BEGIN_SRC yaml
+# .github/workflows/mutation.yml
+name: Mutation Testing
+
+on:
+  schedule:
+    - cron: '0 2 * * 0'  # Weekly on Sunday
+  workflow_dispatch:
+
+jobs:
+  mutants:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install cargo-mutants
+        run: cargo install cargo-mutants
+      
+      - name: Run mutation testing
+        run: |
+          cargo mutants --parallel --output mutants-report/
+          
+      - name: Check mutation score
+        run: |
+          score=$(grep "Mutation Score" mutants-report/summary.txt | grep -oE '[0-9]+\.[0-9]+')
+          if (( $(echo "$score < 80.0" | bc -l) )); then
+            echo "Mutation score $score is below threshold of 80%"
+            exit 1
+          fi
+      
+      - name: Upload report
+        uses: actions/upload-artifact@v3
+        with:
+          name: mutation-report
+          path: mutants-report/
+#+END_SRC
+
+* Common Patterns and Anti-Patterns
+
+** Good: Tests That Kill Multiple Mutants
+#+BEGIN_SRC rust
+// Single test kills multiple mutations
+#[test]
+fn test_comprehensive_validation() {
+    // Kills boundary mutations
+    assert!(is_valid_age(18));
+    assert!(!is_valid_age(17));
+    
+    // Kills arithmetic mutations
+    assert_eq!(calculate_total(10, 20), 30);
+    
+    // Kills logical mutations
+    assert!(is_valid(true, true));
+    assert!(!is_valid(true, false));
+    assert!(!is_valid(false, true));
+}
+#+END_SRC
+
+** Bad: Tests That Don't Verify Behavior
+#+BEGIN_SRC rust
+// Bad: Only checks that function doesn't crash
+#[test]
+fn test_process() {
+    let _ = process_data(&[1, 2, 3]);
+    // Doesn't verify output - many mutants survive!
+}
+
+// Good: Verify actual behavior
+#[test]
+fn test_process() {
+    let result = process_data(&[1, 2, 3]);
+    assert_eq!(result, vec![2, 4, 6]);
+}
+#+END_SRC
+
+** Bad: Testing Implementation Details
+#+BEGIN_SRC rust
+// Testing private functions doesn't help mutation testing
+// Mutants in public API might still survive
+
+// Instead, test through public API
+#[test]
+fn test_public_api() {
+    let obj = MyStruct::new();
+    assert_eq!(obj.public_method(), expected_value);
+    // This tests the entire flow
+}
+#+END_SRC
+
+* Limitations of Mutation Testing
+
+** 1. Equivalent Mutants
+#+BEGIN_SRC rust
+// Original
+fn abs(x: i32) -> i32 {
+    if x >= 0 { x } else { -x }
+}
+
+// Mutant (>= to >)
+fn abs(x: i32) -> i32 {
+    if x > 0 { x } else { -x }
+}
+
+// These are equivalent for abs function!
+// No test can kill this mutant
+#+END_SRC
+
+** 2. Performance Cost
+- Testing each mutant takes time
+- Large codebases = thousands of mutants
+- Can take hours to run completely
+
+** 3. Not All Mutations Are Equal
+#+BEGIN_SRC rust
+// High-value mutation (critical logic)
+if balance >= withdrawal_amount { /* allow */ }
+
+// Low-value mutation (logging)
+log::debug!("Processing {} items", count);
+#+END_SRC
+
+---
+
+*Priority:* HIGH - Essential for ensuring test quality and catching bugs
