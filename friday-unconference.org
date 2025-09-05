@@ -335,25 +335,33 @@ Route 62 Bus:
 🎒 *BRING LAPTOP + CHARGER*
 🎫 *HAVE BADGE READY*
 
-* Session Proposals Draft
+* Actual Sessions - Priority List
 
-** 1. "75% Cheaper CI: Implementing Marco's Strategies"
-- Share what we learned yesterday
-- Workshop implementation for GitHub Actions
-- Cost calculation spreadsheet
-- Group troubleshooting
+** MUST ATTEND
+1. *Teaching Rust in Professional Setting* - Russell Cohen (AWS)
+   - Direct follow-up to Wednesday's adoption talk
+   - Training strategies, measuring success
 
-** 2. "Formal Verification with Kani: Getting Started"
-- Based on AWS talk
-- Install and setup
-- Write first proofs
-- When to use verification
+2. *Rust Test Compilation Performance* - Ariel Ben Yehuda
+   - Complements Marco's CI optimization
+   - Test build bottlenecks and solutions
 
-** 3. "Rust Adoption: Lessons from Amazon & Others"
-- Discuss Russell's talk
-- Share our experiences
-- Create adoption playbook
-- Common pitfalls
+3. *Safety-Critical Rust* - Xander Cesari
+   - Connects to AWS verification and automotive
+   - Certification and formal methods
+
+** HIGH INTEREST
+- *Async Runtime Abstractions in std* - Heath Stewart
+- *Rust Embedded, How We Make It Better* - David Brown
+- *Unlocking dyn libs* - Alyssa Haroldsen
+
+** ALSO INTERESTING
+- Getting into Embedded Rust - Cody Arnold
+- Rust from First Principles - Tyler Bloom
+- Automatic Clone with Claim trait - Brandon Haggstrom
+- Jujutsu and Future of Version Control - Rain P
+
+*Note:* 32 total sessions available - prioritize based on conference themes
 
 ---
 

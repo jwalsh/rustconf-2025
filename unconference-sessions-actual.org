@@ -1,0 +1,218 @@
+#+TITLE: RustConf 2025 UnConference - Actual Session List
+#+DATE: 2025-09-05
+#+LOCATION: Fremont Abbey Arts Center
+#+OPTIONS: toc:2 num:t
+
+* Confirmed Sessions (First 10 of 32)
+
+** High Priority Sessions :MUSTATTEND:
+
+*** Teaching Rust in Professional Setting
+- *Facilitator:* Russell Cohen (AWS)
+- *Email:* rcoh@amazon.com
+- *Why Attend:* Direct follow-up to his Wednesday talk on adoption
+- *Expected Topics:*
+  - Training strategies that work at scale
+  - Common learning obstacles
+  - Creating internal Rust champions
+  - Measuring adoption success
+- *Questions to Ask:*
+  - How long does typical Rust onboarding take?
+  - Best resources for different experience levels?
+  - How to convince management of training ROI?
+
+*** Rust Test Compilation Performance
+- *Facilitator:* Ariel Ben Yehuda
+- *Email:* me@arielby.net
+- *Why Attend:* Directly relates to CI optimization from Marco's talk
+- *Expected Topics:*
+  - Test compilation bottlenecks
+  - Strategies for faster test builds
+  - Incremental compilation for tests
+  - Parallel test execution
+- *Connection to Thursday:* Complements Marco's 75% CI cost reduction
+
+*** Async Runtime Abstractions in std
+- *Facilitator:* Heath Stewart
+- *Email:* heaths@outlook.com
+- *Why Attend:* Core infrastructure topic
+- *Expected Topics:*
+  - Future of async in standard library
+  - Runtime-agnostic abstractions
+  - Compatibility between runtimes
+- *Relevance:* Important for long-term architecture decisions
+
+** Embedded & Systems Sessions :INTERESTING:
+
+*** Getting into Embedded Rust
+- *Facilitator:* Cody Arnold
+- *Email:* djdivinity7@gmail.com
+- *Connection:* Relates to Rivian talk and stratosphere balloon
+- *Topics to Explore:*
+  - Getting started with embedded
+  - Hardware selection
+  - Debugging techniques
+  - no_std ecosystem
+
+*** Rust Embedded, How We Make It Better
+- *Facilitator:* David Brown
+- *Email:* davidb@davidb.org
+- *Focus:* Improving embedded ecosystem
+- *Questions:*
+  - What's missing in embedded Rust?
+  - HAL standardization efforts?
+  - Testing embedded code?
+
+*** Safety-Critical Rust
+- *Facilitator:* Xander Cesari
+- *Email:* xander@merriman.industries
+- *Connection:* AWS formal verification, automotive talks
+- *Expected Topics:*
+  - Certification processes
+  - Formal methods integration
+  - Safety standards compliance
+  - Real-world case studies
+
+** Technical Deep Dives :TECHNICAL:
+
+*** Automatic Clone with the Claim Trait
+- *Facilitator:* Brandon Haggstrom
+- *Email:* me@rigidnetwork.com
+- *Interest:* Novel approach to ownership
+- *Topics:*
+  - Alternative to manual clone
+  - Performance implications
+  - Use cases and patterns
+
+*** Unlocking dyn libs
+- *Facilitator:* Alyssa Haroldsen
+- *Email:* alyssa@alyssa.codes
+- *Relevance:* Dynamic linking strategies
+- *Topics:*
+  - Plugin architectures
+  - ABI stability workarounds
+  - Cross-language interop
+
+** Developer Experience :DEVEX:
+
+*** Rust from First Principles
+- *Facilitator:* Tyler Bloom
+- *Email:* tylerbloom2222@gmail.com
+- *Target Audience:* Educators and mentors
+- *Topics:*
+  - Teaching ownership concept
+  - Mental models that work
+  - Common misconceptions
+
+*** Jujutsu and the Future of Version Control
+- *Facilitator:* Rain P
+- *Email:* rain@sunshowers.io
+- *Interest:* Next-gen VCS for Rust projects
+- *Topics:*
+  - Jujutsu vs Git
+  - Migration strategies
+  - Integration with Rust tooling
+
+* Session Strategy
+
+** Must Attend (Priority Order)
+1. Russell Cohen - Teaching Rust (direct follow-up)
+2. Ariel Ben Yehuda - Test Performance (CI optimization)
+3. Xander Cesari - Safety-Critical (verification connection)
+
+** High Interest
+1. Heath Stewart - Async abstractions (architecture)
+2. David Brown - Embedded improvements (production use)
+3. Alyssa Haroldsen - Dynamic libs (interop patterns)
+
+** If Time Permits
+1. Tyler Bloom - First principles (teaching approaches)
+2. Cody Arnold - Getting into embedded (beginner perspective)
+3. Brandon Haggstrom - Claim trait (novel patterns)
+4. Rain P - Jujutsu (tooling innovation)
+
+* Questions to Prepare
+
+** For Russell Cohen (Teaching)
+- What's the optimal team size for Rust adoption?
+- How to handle resistance from senior C++ developers?
+- Best practices for mixed Rust/legacy codebases?
+
+** For Ariel Ben Yehuda (Test Performance)
+- Incremental compilation strategies for large test suites?
+- How to profile test compilation bottlenecks?
+- Trade-offs between test speed and coverage?
+
+** For Xander Cesari (Safety-Critical)
+- How does Rust certification compare to Ada/SPARK?
+- Integration with MISRA-like standards?
+- Formal verification tooling recommendations?
+
+** For Heath Stewart (Async)
+- Timeline for async traits stabilization?
+- Runtime selection criteria?
+- Debugging async code in production?
+
+* Networking Targets
+
+** People to Connect With
+- [ ] Russell Cohen - AWS adoption strategies
+- [ ] Ariel Ben Yehuda - Test optimization
+- [ ] Xander Cesari - Safety certification
+- [ ] Heath Stewart - Async architecture
+- [ ] David Brown - Embedded ecosystem
+
+** Follow-up Actions
+- [ ] Exchange GitHub/LinkedIn with speakers
+- [ ] Get slides/resources from sessions
+- [ ] Schedule follow-up calls for deep dives
+- [ ] Share notes with team
+
+* Session Notes Template
+
+#+BEGIN_SRC org
+** Session: [Title]
+*** Facilitator: [Name]
+*** Time: [Start-End]
+*** Key Points
+- 
+- 
+- 
+
+*** Action Items
+- [ ] 
+- [ ] 
+
+*** Resources Mentioned
+- 
+- 
+
+*** Follow-up Questions
+- 
+- 
+#+END_SRC
+
+* Logistics Reminders
+
+** Critical Timing
+- 8:00 AM: Leave hotel
+- 8:45 AM: Arrive at Fremont Abbey
+- 9:00 AM: Check-in (MANDATORY)
+- 9:30 AM: Opening circle
+- 10:00 AM: Session planning
+
+** What to Bring
+- [X] Laptop + charger
+- [X] Badge + QR code
+- [ ] Business cards
+- [ ] Water bottle
+- [ ] This session list
+
+** Transportation
+- Route: Aurora Bridge (NOT Fremont Bridge)
+- Transit: Route 62 bus from 3rd & Pine
+- Backup: Lyft/Uber saved as favorite
+
+---
+
+*Note:* 32 total sessions submitted - this covers the first 10. Will need to see full list at venue for complete planning.
