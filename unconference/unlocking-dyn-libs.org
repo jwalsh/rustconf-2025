@@ -1,0 +1,75 @@
+#+TITLE: Unlocking dyn libs
+#+FACILITATOR: Alyssa Haroldsen
+#+EMAIL: alyssa@alyssa.codes
+#+TAGS: abi ffi dynamic-linking interop
+#+OPTIONS: toc:2 num:t
+
+* Session Overview
+
+There's a lot that needs to be done before Rust dynlibs can be used with confidence. ABI stability for functions, structs, and enums (open enums) are top of mind.
+
+** Why This Matters
+- Plugin architectures
+- System integration
+- Long-term binary compatibility
+- Cross-language interop
+
+* Current Challenges
+
+** ABI Instability
+- Layout changes between versions
+- No stable function ABI
+- Mangling inconsistencies
+- Generic monomorphization
+
+** Workarounds Today
+#+BEGIN_SRC rust
+// Current C ABI workaround
+#[no_mangle]
+pub extern "C" fn plugin_init() -> *mut c_void {
+    Box::into_raw(Box::new(MyPlugin::new())) as *mut c_void
+}
+
+// FFI-safe types only
+#[repr(C)]
+pub struct FfiSafeStruct {
+    field: c_int,
+}
+#+END_SRC
+
+* Proposed Solutions
+
+** Stable ABI Subset
+- Define rust-abi-v1
+- Opt-in stability
+- Version negotiation
+- Limited type support
+
+** Open Enums
+#+BEGIN_SRC rust
+// Hypothetical syntax
+#[repr(C, open)]
+pub enum Event {
+    Known1,
+    Known2,
+    #[unknown]
+    Unknown(u32),
+}
+#+END_SRC
+
+* Discussion Topics
+
+- Performance vs stability trade-offs
+- Swift/C++ ABI lessons
+- Versioning strategies
+- Migration paths
+
+* Expected Outcomes
+
+- Requirements document
+- RFC drafts
+- Working group formation
+
+---
+
+*Priority:* HIGH - Enables new architectural patterns

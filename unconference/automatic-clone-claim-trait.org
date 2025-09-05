@@ -1,0 +1,75 @@
+#+TITLE: Automatic Clone with the Claim Trait
+#+FACILITATOR: Brandon Haggstrom
+#+EMAIL: me@rigidnetwork.com
+#+TAGS: language-design ergonomics traits ownership
+#+OPTIONS: toc:2 num:t
+
+* Session Overview
+
+Having to call clone() manually can be frustrating, especially for reference counted smart pointers. Should we have a new trait that lets you implement Copy semantics for non-Copy types, if it's "cheap" to perform the clone?
+
+** The Problem
+- Arc/Rc require explicit .clone()
+- Verbose and annoying
+- Copy trait too restrictive
+- Ergonomics vs explicitness
+
+* Proposed Claim Trait
+
+** Concept
+#+BEGIN_SRC rust
+// Hypothetical trait
+pub trait Claim: Clone {
+    // Marker trait - clone is "cheap"
+}
+
+impl Claim for Arc<T> {}
+impl Claim for Rc<T> {}
+
+// Compiler would auto-insert claims
+let arc1 = Arc::new(42);
+let arc2 = arc1; // Auto-claims, not move
+let arc3 = arc1; // Still valid!
+#+END_SRC
+
+** Design Questions
+- Opt-in or opt-out?
+- Performance implications?
+- Debugging complexity?
+- Migration strategy?
+
+* Arguments For
+
+- Better ergonomics
+- Reduces boilerplate
+- Matches mental model
+- Similar to Swift
+
+* Arguments Against
+
+- Hidden allocations
+- Performance unclear
+- Breaking change?
+- Rust philosophy
+
+* Alternative Solutions
+
+** Syntax Sugar
+#+BEGIN_SRC rust
+// Special syntax?
+let arc2 = &arc1; // Claims instead of borrows?
+#+END_SRC
+
+** IDE Support
+- Auto-insert .clone()
+- Better completions
+
+* Discussion Points
+
+- Where else would Claim help?
+- Performance thresholds?
+- Teaching implications?
+
+---
+
+*Priority:* MEDIUM - Interesting language evolution discussion

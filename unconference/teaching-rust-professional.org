@@ -1,0 +1,169 @@
+#+TITLE: Teaching Rust in Professional Settings
+#+FACILITATOR: Russell Cohen
+#+EMAIL: rcoh@amazon.com
+#+TAGS: education adoption training organizational-change
+#+OPTIONS: toc:2 num:t
+
+* Session Overview
+
+What works for teaching Rust in professional environments? What doesn't? How do we meet learners where they are? This session is a follow-up to Russell's Wednesday talk "A Hitchhiker's Guide to Adopting Rust at Your Company" with practical focus on training strategies.
+
+** Connection to Conference Themes
+- Direct continuation of Russell's adoption talk from Wednesday
+- Addresses the human side of Rust adoption
+- Critical for scaling Rust usage in organizations
+
+* Key Discussion Points
+
+** Teaching Strategies That Work
+- [ ] Meeting developers where they are (C++, Java, Python backgrounds)
+- [ ] Hands-on vs theoretical approaches
+- [ ] Pair programming and mentorship models
+- [ ] Internal champions and evangelists
+
+** Common Learning Obstacles
+1. *Ownership and Borrowing*
+   - Mental models that click
+   - Analogies that work (and don't)
+   - Progressive complexity introduction
+
+2. *Error Messages and Compiler*
+   - Teaching to read error messages
+   - Understanding compiler suggestions
+   - Building intuition for fixes
+
+3. *Ecosystem Navigation*
+   - Choosing appropriate crates
+   - Understanding async complexity
+   - Build system and tooling
+
+** Organizational Challenges
+- Getting management buy-in for training time
+- Measuring training effectiveness
+- Creating safe learning environments
+- Handling resistance from senior developers
+
+* Questions to Prepare
+
+** For Russell
+- What's the typical timeline from zero to productive at Amazon?
+- How do you handle the "just use unsafe" temptation?
+- Best resources for different experience levels?
+- How to measure adoption success?
+
+** For Group Discussion
+- What misconceptions do learners commonly have?
+- How to teach Rust idioms vs just "making it compile"?
+- Balance between safety and productivity during learning?
+- Role of AI assistants in learning Rust?
+
+* Related Conference Talks
+
+** Russell's Wednesday Talk
+- Five years of lessons from thousands of developers
+- Domains where Rust succeeds
+- Organizational change strategies
+
+** Jonathan Kelley's Keynote
+- High-level Rust abstractions
+- Making Rust more approachable
+
+* Training Program Template
+
+** Week 1-2: Foundations
+#+BEGIN_SRC org
+- Ownership basics without lifetimes
+- Pattern matching and enums
+- Error handling with Result
+- Small CLI project
+#+END_SRC
+
+** Week 3-4: Intermediate
+#+BEGIN_SRC org
+- Traits and generics
+- Lifetimes introduction
+- Collections and iterators
+- First real project migration
+#+END_SRC
+
+** Week 5-6: Advanced
+#+BEGIN_SRC org
+- Async basics (if needed)
+- FFI for existing code integration
+- Performance optimization
+- Production deployment
+#+END_SRC
+
+* Resources and Materials
+
+** Recommended Learning Path
+1. *Books*
+   - The Rust Book (official)
+   - Rust in Action (Manning)
+   - Programming Rust (O'Reilly)
+
+2. *Online Courses*
+   - Google's Comprehensive Rust (3-day course)
+   - Rustlings exercises
+   - Exercism Rust track
+
+3. *Internal Resources*
+   - Create internal style guide
+   - Document common patterns
+   - Share migration case studies
+
+** Training Metrics
+#+BEGIN_SRC org
+| Metric | Target | Measurement |
+|--------+--------+-------------|
+| Time to first PR | 2 weeks | Git history |
+| Time to productivity | 6 weeks | Manager assessment |
+| Code review cycles | <3 | PR metrics |
+| Bug rate | -50% | Issue tracking |
+#+END_SRC
+
+* Action Items
+
+** During Session
+- [ ] Share our training experiences
+- [ ] Get Amazon's training materials references
+- [ ] Learn about successful programs at other companies
+- [ ] Discuss AI-assisted learning approaches
+
+** Post-Session Follow-up
+- [ ] Create internal Rust training program
+- [ ] Set up mentorship pairings
+- [ ] Schedule regular Rust office hours
+- [ ] Build internal learning resources
+
+* Expected Outcomes
+
+** Short-term (1 month)
+- Clear training curriculum
+- Identified internal champions
+- Management buy-in for training time
+
+** Long-term (6 months)
+- 10+ developers productive in Rust
+- Reduced onboarding time by 50%
+- Internal knowledge base established
+- Measurable productivity improvements
+
+* Notes Section
+#+BEGIN_SRC org
+** Session Notes
+[To be filled during the session]
+
+** Success Stories
+
+
+** Common Pitfalls
+
+
+** Follow-up Contacts
+
+#+END_SRC
+
+---
+
+*Priority:* CRITICAL - Essential for successful Rust adoption at scale

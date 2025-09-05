@@ -1,0 +1,85 @@
+#+TITLE: Jujutsu and the Future of Version Control
+#+FACILITATOR: Rain P
+#+EMAIL: rain@sunshowers.io
+#+TAGS: vcs tooling git productivity
+#+OPTIONS: toc:2 num:t
+
+* Session Overview
+
+The Jujutsu VCS, written in Rust, has taken the internet by storm by being both simpler and more powerful than Git. Let's talk about the past, present and future of source control, and how Rust provides a step change improvement in performance, portability, and quality!
+
+** Why This Matters
+- Developer productivity impact
+- Rust showcase project
+- Future of development tooling
+
+* What is Jujutsu (jj)?
+
+** Key Innovations
+- No staging area (automatic)
+- Every commit is mutable
+- Conflicts are first-class
+- Automatic rebasing
+- Undo for everything
+
+** Git Comparison
+| Operation | Git | Jujutsu |
+|-----------+-----+---------|
+| Stage changes | git add | automatic |
+| Amend commit | git commit --amend | jj squash |
+| Rebase | git rebase -i | jj rebase -r |
+| Undo | git reflog + reset | jj undo |
+| Conflicts | Stop and resolve | Store in commit |
+
+* Quick Start Examples
+
+#+BEGIN_SRC bash
+# Initialize jj in existing git repo
+jj git init --colocate
+
+# Make changes (no staging needed)
+echo "changes" >> file.txt
+jj describe -m "My changes"
+
+# Amend current change
+echo "more" >> file.txt
+jj squash  # Combines with previous
+
+# Interactive history editing
+jj log
+jj rebase -r xyz -d main
+
+# Undo anything
+jj undo
+#+END_SRC
+
+* Discussion Topics
+
+** Migration Strategy
+- Colocating with Git
+- Team adoption
+- CI/CD integration
+- Tooling ecosystem
+
+** Rust Implementation Benefits
+- Memory safety for VCS
+- Performance improvements
+- Cross-platform consistency
+- Extensibility
+
+* Questions to Explore
+
+- How does jj handle large repos?
+- Integration with existing tools?
+- Learning curve for teams?
+- Future roadmap?
+
+* Resources
+
+- [[https://github.com/martinvonz/jj][GitHub: martinvonz/jj]]
+- [[https://martinvonz.github.io/jj/latest/][Documentation]]
+- Tutorial: jj init
+
+---
+
+*Priority:* MEDIUM - Interesting for tooling innovation

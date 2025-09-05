@@ -1,0 +1,82 @@
+#+TITLE: Rust from First Principles
+#+FACILITATOR: Tyler Bloom
+#+EMAIL: tylerbloom2222@gmail.com
+#+TAGS: education mental-models beginner teaching
+#+OPTIONS: toc:2 num:t
+
+* Session Overview
+
+A brainstorming session for how to help new Rustaceans develop a mental model that will make them comfortable with Rust. Focus on teaching approaches that build intuition rather than just rules.
+
+** Connection to Teaching Theme
+- Complements Russell's professional training session
+- Foundation for all Rust education
+- Critical for adoption
+
+* Mental Models That Work
+
+** Ownership as Resource Management
+- "Values have exactly one owner"
+- "Borrowing is temporary permission"
+- "Move is transfer of responsibility"
+
+** Lifetime as Scope
+- "References can't outlive their data"
+- "Compiler tracks all borrows"
+- "Static is forever"
+
+** Type System as Contracts
+- "Traits are capabilities"
+- "Generics are templates"
+- "Types encode invariants"
+
+* Common Misconceptions
+
+** What Doesn't Work
+- ❌ "Rust is C++ but safe"
+- ❌ "Just fight the compiler"
+- ❌ "Clone everything"
+- ❌ "Lifetimes are about memory"
+
+** Better Framings
+- ✅ "Rust prevents categories of bugs"
+- ✅ "Compiler is your pair programmer"
+- ✅ "Choose the right ownership pattern"
+- ✅ "Lifetimes are about relationships"
+
+* Teaching Progression
+
+** Week 1: Ownership Only
+#+BEGIN_SRC rust
+// Start simple - no references
+fn process(data: String) -> String {
+    // Work with owned values
+}
+#+END_SRC
+
+** Week 2: Borrowing
+#+BEGIN_SRC rust
+// Introduce references
+fn process(data: &str) -> String {
+    // Immutable borrows only
+}
+#+END_SRC
+
+** Week 3: Mutability
+#+BEGIN_SRC rust
+// Add mutation
+fn process(data: &mut String) {
+    // Exclusive access
+}
+#+END_SRC
+
+* Discussion Topics
+
+- Visual representations that help?
+- Analogies that click?
+- Exercise progressions?
+- Common "aha!" moments?
+
+---
+
+*Priority:* HIGH - Foundation for all Rust education

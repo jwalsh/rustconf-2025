@@ -1,0 +1,196 @@
+#+TITLE: Safety-Critical Rust
+#+FACILITATOR: Xander Cesari
+#+EMAIL: xander@merriman.industries
+#+TAGS: safety certification automotive aerospace medical
+#+OPTIONS: toc:2 num:t
+
+* Session Overview
+
+Getting Rust into safety-critical industries like automotive, aerospace, medical devices, industrial, and nuclear. Open discussion about tooling around Rust, Rust features, cultural adoption, and certification processes.
+
+** Connection to Conference Themes
+- Relates to AWS Kani formal verification talk
+- Connects to Rivian automotive presentation
+- Links to embedded Rust discussions
+
+* Key Discussion Points
+
+** Industry Requirements
+1. *Certification Standards*
+   - ISO 26262 (Automotive)
+   - DO-178C (Aerospace)
+   - IEC 62304 (Medical)
+   - IEC 61508 (Industrial)
+
+2. *Technical Requirements*
+   - Deterministic execution
+   - Bounded memory usage
+   - WCET analysis
+   - No dynamic allocation
+   - Formal verification
+
+3. *Cultural Challenges*
+   - Conservative industry mindset
+   - Existing C/Ada codebases
+   - Regulatory acceptance
+   - Tool qualification
+
+** Rust Advantages for Safety
+- Memory safety guarantees
+- No undefined behavior in safe Rust
+- Strong type system
+- Explicit error handling
+- No null pointers
+
+** Current Gaps
+- [ ] Certified compiler toolchain
+- [ ] Qualified static analysis tools
+- [ ] MISRA-like coding standards
+- [ ] Safety-critical runtime
+- [ ] Formal semantics specification
+
+* Questions to Prepare
+
+** Technical Questions
+- How does Rust certification compare to Ada/SPARK?
+- What subset of Rust is certifiable?
+- How to handle unsafe code in safety contexts?
+- Integration with existing safety tools?
+
+** Process Questions
+- Timeline for certification readiness?
+- Cost of certification vs C/Ada?
+- Which industries are most ready?
+- Role of formal methods?
+
+* Related Work and Tools
+
+** Formal Verification Tools
+#+BEGIN_SRC bash
+# AWS Kani
+cargo install --locked kani-verifier
+cargo kani setup
+
+# Prusti
+# Creusot
+# Verus
+#+END_SRC
+
+** Safety Subset Definition
+#+BEGIN_SRC rust
+// Potential safety subset restrictions
+#![forbid(unsafe_code)]
+#![no_std]
+#![no_main]
+
+// No heap allocation
+// No recursion
+// Bounded loops only
+// Static memory only
+#+END_SRC
+
+* Industry Case Studies
+
+** Automotive (Rivian, Others)
+- Infotainment systems (less critical)
+- ADAS components (more critical)
+- Gradual adoption strategy
+
+** Aerospace
+- Ground systems first
+- Non-flight critical systems
+- Simulation and testing
+
+** Medical Devices
+- Class II devices
+- Data processing components
+- Non-life-critical functions
+
+* Certification Roadmap
+
+** Phase 1: Tool Qualification
+- Compiler verification
+- Static analysis tools
+- Test framework qualification
+
+** Phase 2: Standards Development
+- MISRA Rust guidelines
+- Safety patterns library
+- Certification evidence templates
+
+** Phase 3: Pilot Projects
+- Low-criticality systems
+- Hybrid C/Rust systems
+- Evidence collection
+
+** Phase 4: Full Adoption
+- Safety-critical components
+- Primary development language
+- Industry acceptance
+
+* Action Items
+
+** During Session
+- [ ] Share certification experiences
+- [ ] Identify key blockers
+- [ ] Form working groups
+- [ ] Connect with regulators
+
+** Post-Session Follow-up
+- [ ] Join Rust safety working group
+- [ ] Contribute to safety standards
+- [ ] Start pilot project
+- [ ] Document evidence requirements
+
+* Resources
+
+** Organizations
+- Rust Safety Working Group
+- Ferrocene (Certified Rust)
+- AdaCore (SPARK comparison)
+
+** Documentation
+- Safety-Critical Rust RFC
+- Ferrocene specification
+- Industry standards mapping
+
+** Tools
+#+BEGIN_SRC toml
+# Cargo.toml for safety-critical
+[profile.release]
+panic = "abort"
+lto = true
+codegen-units = 1
+opt-level = "z"
+#+END_SRC
+
+* Expected Outcomes
+
+** Short-term
+- Clear understanding of gaps
+- Industry contacts established
+- Pilot project identified
+
+** Long-term
+- Certified Rust toolchain
+- Industry adoption roadmap
+- Regulatory acceptance
+
+* Notes Section
+#+BEGIN_SRC org
+** Session Notes
+[To be filled during the session]
+
+** Key Contacts
+
+
+** Action Items
+
+
+** Follow-up Resources
+
+#+END_SRC
+
+---
+
+*Priority:* HIGH - Critical for Rust adoption in regulated industries

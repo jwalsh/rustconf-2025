@@ -1,0 +1,179 @@
+#+TITLE: Async Runtime Abstractions in std
+#+FACILITATOR: Heath Stewart
+#+EMAIL: heaths@outlook.com
+#+TAGS: async std-library runtime architecture
+#+OPTIONS: toc:2 num:t
+
+* Session Overview
+
+Supporting dev choice of async runtimes (and fs, http, etc., tied to them) in library crates creates a fractured ecosystem. Every crate has their own abstractions and none of it compatible beyond Future and a few others. Common abstractions over async runtime primitives like spawning tasks, AsyncIO, etc., could create more cohesion among dependencies.
+
+** Connection to Conference Themes
+- Relates to Tuesday's async workshops
+- Important for ecosystem standardization
+- Critical for library authors
+
+* Key Discussion Points
+
+** Current Ecosystem Fragmentation
+1. *Runtime Lock-in*
+   - Tokio-specific code
+   - async-std dependencies
+   - smol/embassy differences
+   - Runtime-specific features
+
+2. *Abstraction Attempts*
+   - async-trait limitations
+   - Runtime detection hacks
+   - Feature flag proliferation
+   - Compatibility layers
+
+3. *Common Pain Points*
+   - Task spawning differences
+   - Timer implementations
+   - IO trait incompatibilities
+   - Channel implementations
+
+** Proposed Standard Abstractions
+#+BEGIN_SRC rust
+// Potential std abstractions
+trait AsyncRuntime {
+    type JoinHandle<T>: Future<Output = T>;
+    
+    fn spawn<F>(future: F) -> Self::JoinHandle<F::Output>
+    where
+        F: Future + Send + 'static,
+        F::Output: Send + 'static;
+        
+    fn spawn_local<F>(future: F) -> Self::JoinHandle<F::Output>
+    where
+        F: Future + 'static;
+}
+
+trait AsyncIo: AsyncRead + AsyncWrite {
+    // Common IO operations
+}
+
+trait AsyncTimer {
+    fn sleep(duration: Duration) -> impl Future<Output = ()>;
+    fn timeout<F>(duration: Duration, future: F) -> impl Future<Output = Result<F::Output, Timeout>>;
+}
+#+END_SRC
+
+* Questions to Prepare
+
+** Design Questions
+- What's the minimal set of abstractions needed?
+- How to handle runtime-specific optimizations?
+- Backwards compatibility strategy?
+- Performance implications?
+
+** Implementation Questions
+- Timeline for std inclusion?
+- Migration path for existing code?
+- How to prevent another tokio 0.1 -> 1.0 situation?
+
+* Related Ecosystem Work
+
+** Current Abstraction Crates
+- futures-core
+- async-trait
+- tower (service abstraction)
+- http (shared types)
+
+** Runtime Comparison
+| Feature | Tokio | async-std | smol | embassy |
+|---------+-------+-----------+------+---------|
+| Spawn | tokio::spawn | task::spawn | smol::spawn | embassy::spawn |
+| Timer | time::sleep | task::sleep | Timer::after | Timer::after |
+| IO | tokio::io | async_std::io | smol::io | embassy::io |
+| Channels | mpsc/oneshot | channel | channel | channel |
+
+* Potential Solutions
+
+** Option 1: Minimal std Traits
+- Just core abstractions
+- Runtime provides implementation
+- Similar to Allocator API
+
+** Option 2: Runtime Registry
+- Dynamic runtime selection
+- Global runtime concept
+- Similar to Python's asyncio
+
+** Option 3: Compiler Support
+- async transforms
+- Runtime inference
+- Zero-cost abstractions
+
+* Action Items
+
+** During Session
+- [ ] Define must-have abstractions
+- [ ] Identify blockers
+- [ ] Get runtime maintainer input
+- [ ] Discuss RFC strategy
+
+** Post-Session Follow-up
+- [ ] Draft pre-RFC
+- [ ] Prototype abstraction crate
+- [ ] Get community feedback
+- [ ] Coordinate with libs team
+
+* Implementation Example
+
+** Library Code (Future)
+#+BEGIN_SRC rust
+// Runtime-agnostic library
+pub async fn fetch_data<R: AsyncRuntime>() -> Result<Data> {
+    let handle = R::spawn(async {
+        // Background task
+    });
+    
+    R::timeout(Duration::from_secs(30), async {
+        // Main operation
+    }).await?;
+    
+    handle.await
+}
+#+END_SRC
+
+** Application Code
+#+BEGIN_SRC rust
+// User chooses runtime
+#[tokio::main]
+async fn main() {
+    let data = fetch_data::<TokioRuntime>().await?;
+}
+#+END_SRC
+
+* Expected Outcomes
+
+** Short-term
+- Agreement on core abstractions
+- Working group formation
+- Prototype implementation
+
+** Long-term
+- std::async module
+- Ecosystem convergence
+- Runtime portability
+
+* Notes Section
+#+BEGIN_SRC org
+** Session Notes
+[To be filled during the session]
+
+** Key Insights
+
+
+** Action Items
+
+
+** Follow-up Contacts
+
+#+END_SRC
+
+---
+
+*Priority:* HIGH - Essential for Rust async ecosystem health

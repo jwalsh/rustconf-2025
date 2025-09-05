@@ -1,0 +1,174 @@
+#+TITLE: RustConf 2025 UnConference Session Index
+#+DATE: 2025-09-05
+#+LOCATION: Fremont Abbey Arts Center
+#+OPTIONS: toc:2 num:t
+
+* Critical Information
+- *Venue:* Fremont Abbey Arts Center (NOT Hyatt!)
+- *Time:* Must arrive by 9:00 AM
+- *Total Sessions:* 32 submitted
+- *Format:* Choose your own sessions
+
+* Session Categories
+
+** 🎯 High Priority (Must Attend)
+
+*** [[file:teaching-rust-professional.org][Teaching Rust in Professional Settings]]
+- Russell Cohen (AWS) - rcoh@amazon.com
+- Follow-up to Wednesday's adoption talk
+- *Priority:* CRITICAL
+
+*** [[file:rust-test-compilation-performance.org][Rust Test Compilation Performance]]
+- Ariel Ben Yehuda - me@arielby.net
+- Relates to CI cost reduction
+- *Priority:* CRITICAL
+
+*** [[file:safety-critical-rust.org][Safety-Critical Rust]]
+- Xander Cesari - xander@merriman.industries
+- Certification and formal methods
+- *Priority:* HIGH
+
+** 🔧 Technical Deep Dives
+
+*** [[file:async-runtime-abstractions-std.org][Async Runtime Abstractions in std]]
+- Heath Stewart - heaths@outlook.com
+- Ecosystem standardization
+
+*** [[file:unlocking-dyn-libs.org][Unlocking dyn libs]]
+- Alyssa Haroldsen - alyssa@alyssa.codes
+- ABI stability
+
+*** [[file:automatic-clone-claim-trait.org][Automatic Clone with Claim Trait]]
+- Brandon Haggstrom - me@rigidnetwork.com
+- Language ergonomics
+
+** 🔌 Embedded & Hardware
+
+*** [[file:getting-into-embedded-rust.org][Getting into Embedded Rust]]
+- Cody Arnold - djdivinity7@gmail.com
+- Beginner-friendly
+
+*** [[file:rust-embedded-improvements.org][Rust Embedded - How We Make It Better]]
+- David Brown - davidb@davidb.org
+- Ecosystem development
+
+** 📚 Education & Learning
+
+*** [[file:rust-from-first-principles.org][Rust from First Principles]]
+- Tyler Bloom - tylerbloom2222@gmail.com
+- Mental models for beginners
+
+** 🛠️ Developer Tools
+
+*** [[file:jujutsu-future-version-control.org][Jujutsu and the Future of Version Control]]
+- Rain P - rain@sunshowers.io
+- Next-gen VCS in Rust
+
+* Complete Session List (All 32)
+
+** Sessions with Deep Dives (10)
+1. ✅ Rust Test Compilation Performance - Ariel Ben Yehuda
+2. ✅ Getting into Embedded Rust - Cody Arnold
+3. ✅ Rust from First Principles - Tyler Bloom
+4. ✅ Teaching Rust in Professional Settings - Russell Cohen
+5. ✅ Automatic Clone with Claim Trait - Brandon Haggstrom
+6. ✅ Jujutsu and Future of Version Control - Rain P
+7. ✅ Async Runtime Abstractions in std - Heath Stewart
+8. ✅ Unlocking dyn libs - Alyssa Haroldsen
+9. ✅ Rust Embedded Improvements - David Brown
+10. ✅ Safety-Critical Rust - Xander Cesari
+
+** Additional Sessions (22)
+11. Static Dependency Injection - Alyssa Haroldsen - alyssa@alyssa.codes
+12. Semi-formal Proofs - Aleks Rudzitis - aleks@rudzitis.org
+13. Metadata for Cargo Features - Landon James - landonxjames@gmail.com
+14. Making Stronger Rust Test Styles Easy - Zachary Pierce - zachary.pierce@gmail.com
+15. Specialization Stories - Jack Huey - jackh726@gmail.com
+16. Open Enums with Data - Alyssa Haroldsen - alyssa@alyssa.codes
+17. Garbage Collection in Rust - Kevin Ness - nekevss@gmail.com
+18. Emulation/Simulation with Rust - Chris Hinson - chris@hinson.dev
+19. Rust-Python for Research - Nicolas Posner - nicolasposner@gmail.com
+20. Internationalization/Unicode - Manish Goregaokar - manishearth@google.com
+21. Programming Like It's 1960 - Jamie Briant - jamiebriant@gmail.com
+22. Hobbyist to Professional Rust - Matt Mullins - mokomull@gmail.com
+23. Streams and Iterators - Jacob Ouellet-Boudreault - jf1.44@videotron.ca
+24. Automated Property-Based Testing - Isaac Chen - isaacjchen1@gmail.com
+25. Automate "Don't Iterate Hashmap" - Dan J @ComputerDruid - computerdruid@gmail.com
+26. Onboarding New Contributors - Eric Holk - eric@theincredibleholk.org
+27. Chess Programming - Danny Hammer - doyouevenscience99@gmail.com
+28. dyn Any - Daniel Gallups - dsgallups@protonmail.com
+29. Scenario-first Workflows - John Lambert - jlamb.personal@gmail.com
+30. Starter Projects Different - John Lambert - jlamb.personal@gmail.com
+31. CRDTs/Local First - Chloe McKnight - cbt0029@gmail.com
+32. Pathway to BigIron - Crutcher Dunnavant - crutcher@gmail.com
+
+* Session Strategy by Time Slot
+
+** 10:30 AM - 12:00 PM (Morning)
+*Recommended Path:*
+1. Teaching Rust (Russell) - 45 min
+2. Test Performance (Ariel) - 45 min
+
+** 1:00 PM - 3:00 PM (Afternoon)
+*Recommended Path:*
+1. Safety-Critical (Xander) - 45 min
+2. Async Abstractions (Heath) - 45 min
+3. Lightning rounds if time
+
+* Key Themes to Track
+
+** CI/CD & Performance
+- Test compilation (Ariel)
+- Property-based testing (Isaac)
+- Hashmap iteration (Dan)
+
+** Education & Adoption
+- Teaching (Russell)
+- First principles (Tyler)
+- Hobbyist to pro (Matt)
+- New contributors (Eric)
+
+** Systems & Safety
+- Safety-critical (Xander)
+- Embedded improvements (David)
+- Semi-formal proofs (Aleks)
+
+** Language Evolution
+- Async abstractions (Heath)
+- Claim trait (Brandon)
+- Open enums (Alyssa)
+- Specialization (Jack)
+
+* Networking Targets
+
+** Must Connect
+- [ ] Russell Cohen (AWS adoption)
+- [ ] Ariel Ben Yehuda (test performance)
+- [ ] Xander Cesari (safety certification)
+- [ ] Heath Stewart (async design)
+
+** High Value
+- [ ] David Brown (embedded ecosystem)
+- [ ] Alyssa Haroldsen (ABI work)
+- [ ] Manish Goregaokar (i18n/Unicode)
+
+* Post-UnConf Actions
+
+** Immediate
+- [ ] Upload session notes
+- [ ] Share key insights on Discord
+- [ ] Exchange contacts
+
+** This Week
+- [ ] Implement test optimizations
+- [ ] Try Jujutsu VCS
+- [ ] Start safety certification research
+
+** This Month
+- [ ] Contribute to discussed RFCs
+- [ ] Join working groups
+- [ ] Write blog posts on learnings
+
+---
+
+*Remember:* Law of Two Feet - move between sessions as needed!

@@ -1,0 +1,147 @@
+#+TITLE: Rust Test Compilation Performance
+#+FACILITATOR: Ariel Ben Yehuda
+#+EMAIL: me@arielby.net
+#+TAGS: testing ci-optimization performance
+#+OPTIONS: toc:2 num:t
+
+* Session Overview
+
+Currently, running ~cargo test~ on large tests can be very slow, leading to a slow test loop. This session will discuss ways to make test compilation and execution faster.
+
+** Connection to Conference Themes
+- Directly relates to Marco Ieni's "How We Made the Rust CI 75% Cheaper" talk
+- Complements CI/CD optimization strategies from executive summary
+- Critical for developer productivity and cost reduction
+
+* Key Discussion Points
+
+** Current Pain Points
+- [ ] Test compilation taking longer than production builds
+- [ ] Incremental compilation not working well for tests
+- [ ] Large test suites blocking CI pipelines
+- [ ] Memory usage during test compilation
+
+** Optimization Strategies to Explore
+1. *Compilation Optimization*
+   - Profile-guided optimization for test builds
+   - Selective test compilation
+   - Caching strategies for test artifacts
+   
+2. *Test Organization*
+   - Splitting test crates effectively
+   - Integration vs unit test separation
+   - Workspace optimization for testing
+
+3. *Tooling Improvements*
+   - cargo-nextest advantages
+   - Custom test harnesses
+   - Parallel compilation settings
+
+* Questions to Prepare
+
+** Technical Questions
+- How do you profile test compilation bottlenecks?
+- What's the impact of proc macros on test compilation?
+- How does workspace structure affect test performance?
+- Can we share compiled dependencies between test and production?
+
+** Strategic Questions
+- What's acceptable test compilation time for different project sizes?
+- How to balance comprehensive testing with fast feedback?
+- Trade-offs between test coverage and compilation speed?
+
+* Related Conference Talks
+
+** Marco Ieni - CI Cost Reduction
+- Caching strategies that apply to test compilation
+- GitHub Actions optimization techniques
+- Cost monitoring and alerts
+
+** AWS Verification Talk
+- Balance between formal verification and traditional testing
+- When to use property-based testing vs unit tests
+
+* Action Items
+
+** During Session
+- [ ] Document specific bottlenecks in our codebase
+- [ ] Share our test compilation times and project structure
+- [ ] Learn about successful optimization case studies
+- [ ] Get tool recommendations
+
+** Post-Session Follow-up
+- [ ] Implement cargo-nextest if not already using
+- [ ] Profile our test compilation with cargo build --timings
+- [ ] Restructure test organization based on learnings
+- [ ] Set up test compilation metrics in CI
+
+* Resources
+
+** Tools to Investigate
+#+BEGIN_SRC bash
+# Install performance tools
+cargo install cargo-nextest
+cargo install cargo-limit
+cargo install cargo-cache
+
+# Profile test compilation
+cargo test --timings
+cargo build --tests --timings
+
+# Clean and measure cache impact
+cargo cache -a
+#+END_SRC
+
+** Configuration Optimizations
+#+BEGIN_SRC toml
+# .cargo/config.toml
+[build]
+incremental = true
+# Optimize for faster compilation
+codegen-units = 256
+
+[profile.test]
+opt-level = 0
+debug = 1  # Reduced debug info
+#+END_SRC
+
+** GitHub Actions Optimization
+#+BEGIN_SRC yaml
+# From Marco's talk - test caching
+- uses: Swatinem/rust-cache@v2
+  with:
+    cache-targets: true
+    cache-all-crates: true
+#+END_SRC
+
+* Expected Outcomes
+
+** Immediate Wins
+- 30-50% reduction in test compilation time
+- Better incremental compilation usage
+- Optimized CI pipeline configuration
+
+** Long-term Benefits
+- Faster developer feedback loop
+- Reduced CI costs
+- More frequent test runs
+- Higher developer satisfaction
+
+* Notes Section
+#+BEGIN_SRC org
+** Session Notes
+[To be filled during the session]
+
+** Key Insights
+
+
+** Action Items
+
+
+** Follow-up Contacts
+
+#+END_SRC
+
+---
+
+*Priority:* HIGH - Directly impacts daily development workflow and CI costs

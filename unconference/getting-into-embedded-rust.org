@@ -1,0 +1,89 @@
+#+TITLE: Getting into Embedded Rust
+#+FACILITATOR: Cody Arnold
+#+EMAIL: djdivinity7@gmail.com
+#+TAGS: embedded hardware beginner microcontroller
+#+OPTIONS: toc:2 num:t
+
+* Session Overview
+
+How to get started with embedded Rust, sharing projects and ideas. Perfect for developers interested in hardware programming but unsure where to begin.
+
+** Connection to Conference Themes
+- Links to stratosphere balloon talk (Thursday)
+- Relates to Rivian automotive embedded systems
+- Connects with safety-critical discussions
+
+* Key Discussion Points
+
+** Getting Started Challenges
+- [ ] Choosing first hardware (ESP32, STM32, RP2040)
+- [ ] Development environment setup
+- [ ] Debugging without println!
+- [ ] Understanding no_std constraints
+
+** Popular Starter Projects
+1. *Beginner Projects*
+   - LED blink variations
+   - Temperature sensors
+   - OLED displays
+   - Button interrupts
+
+2. *Intermediate Projects*
+   - IoT sensors
+   - Motor control
+   - Wireless communication
+   - Real-time systems
+
+** Hardware Recommendations
+| Board | Cost | Pros | Cons | Best For |
+|-------+------+------+------+----------|
+| RP2040 | $4 | Cheap, well-supported | Limited peripherals | Beginners |
+| ESP32 | $10 | WiFi/BT, lots of RAM | Complex SDK | IoT projects |
+| STM32F4 | $15 | Professional, fast | Steeper learning | Real products |
+| micro:bit | $20 | Educational focus | Limited IO | Teaching |
+
+* Resources and Tools
+
+** Essential Crates
+#+BEGIN_SRC toml
+[dependencies]
+cortex-m = "0.7"
+cortex-m-rt = "0.7"
+panic-halt = "0.2"
+nb = "1.0"
+embedded-hal = "1.0"
+
+# Board-specific HAL
+rp2040-hal = "0.9"  # For Raspberry Pi Pico
+esp-hal = "0.16"    # For ESP32
+#+END_SRC
+
+** Development Setup
+#+BEGIN_SRC bash
+# Install tools
+rustup target add thumbv6m-none-eabi  # For RP2040
+cargo install probe-rs --features cli
+cargo install flip-link
+cargo install cargo-embed
+
+# Create project
+cargo generate --git https://github.com/rp-rs/rp2040-project-template
+#+END_SRC
+
+* Questions to Prepare
+
+- Best practices for memory management?
+- How to handle hardware abstraction layers?
+- Testing strategies for embedded code?
+- Power optimization techniques?
+
+* Expected Outcomes
+
+- Clear getting-started path
+- Hardware recommendations list
+- Project idea collection
+- Community connections
+
+---
+
+*Priority:* MEDIUM - Great for expanding Rust into new domains

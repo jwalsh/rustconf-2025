@@ -1,0 +1,81 @@
+#+TITLE: Rust Embedded - How We Make It Better
+#+FACILITATOR: David Brown
+#+EMAIL: davidb@davidb.org
+#+TAGS: embedded ecosystem hal community
+#+OPTIONS: toc:2 num:t
+
+* Session Overview
+
+Rust embedded supports a lot of platforms, but there is a lot of opportunity for more and better HALs, devices and services. How can we get more involvement, including by companies?
+
+** Connection to Conference
+- Builds on embedded discussions from main conference
+- Company involvement like Rivian
+- Safety-critical applications
+
+* Current State of Embedded Rust
+
+** Strengths
+- Memory safety without GC
+- Zero-cost abstractions
+- Great type system for hardware
+- Active community
+
+** Gaps and Opportunities
+- [ ] HAL standardization
+- [ ] More vendor support
+- [ ] Better debugging tools
+- [ ] Documentation improvements
+- [ ] Training materials
+
+* Key Discussion Points
+
+** HAL Ecosystem
+1. *Current Fragmentation*
+   - Different APIs per vendor
+   - Inconsistent quality
+   - Missing platforms
+
+2. *Standardization Efforts*
+   - embedded-hal traits
+   - Common patterns
+   - Testing strategies
+
+** Company Involvement
+- How to convince vendors?
+- Business case for Rust
+- Support models
+- Training needs
+
+* Action Items
+
+** For Community
+- [ ] Identify priority platforms
+- [ ] Create HAL guidelines
+- [ ] Improve onboarding docs
+- [ ] Build example projects
+
+** For Companies
+- [ ] Contribute HAL implementations
+- [ ] Sponsor development
+- [ ] Share use cases
+- [ ] Provide hardware
+
+* Resources
+
+** Key Projects
+- embedded-hal
+- probe-rs
+- Embassy
+- RTIC
+
+** Getting Involved
+#+BEGIN_SRC bash
+# Join the community
+# Matrix: #rust-embedded:matrix.org
+# GitHub: rust-embedded/*
+#+END_SRC
+
+---
+
+*Priority:* HIGH - Critical for embedded Rust growth
