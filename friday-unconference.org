@@ -1,0 +1,360 @@
+#+TITLE: RustConf 2025 UnConference - Friday, September 5
+#+DATE: 2025-09-05
+#+LOCATION: Fremont Abbey Arts Center
+#+OPTIONS: toc:2 num:t
+
+* Critical Information
+
+** Venue Change! 
+- *NOT at Hyatt Regency*
+- Location: Fremont Abbey Arts Center
+- Address: 4272 Fremont Ave N, Seattle, WA 98103
+
+** Timing is Critical
+- *9:00 AM*: Must arrive for check-in
+- *9:30 AM*: Kickoff begins (be seated!)
+- Late arrival = spot given to waitlist
+- Full capacity event - no exceptions
+
+** Transportation
+- *Recommended Route*: Aurora Bridge (avoid Fremont drawbridge!)
+- Public Transit: ~22 minutes from Hyatt ($2.75)
+- Rideshare: 15-22 minutes
+- [[https://bit.ly/rustconf-route][Route from Hyatt]]
+
+* Pre-UnConf Checklist
+
+** Tonight (Thursday)
+- [ ] Charge all devices
+- [ ] Pack laptop + chargers
+- [ ] Review Discord channel
+- [ ] Set multiple alarms for 7:30 AM
+- [ ] Check transit/Lyft app
+- [ ] Pack suitcase if flying out after
+
+** What to Bring
+- [X] RustConf badge (confirmed - have it)
+- [X] UnConf ticket QR code (Order: CMSS-1)
+- [ ] Laptop + charger
+- [ ] Phone with Discord app
+- [ ] Water bottle
+- [ ] Notebook + pens
+- [ ] Business cards
+- [ ] Suitcase (if traveling after)
+
+** Digital Prep
+- [ ] Join Discord: https://discord.gg/EBYexM3eTD
+- [ ] Install Discord mobile app
+- [ ] Download offline maps for Fremont
+- [ ] Screenshot ticket QR code
+- [ ] Save Lyft/Uber to favorites
+
+* UnConference Format
+
+** What is an UnConference?
+- Participant-driven agenda
+- No predetermined speakers
+- Topics proposed by attendees
+- Self-organizing sessions
+- Open discussions and collaboration
+
+** Typical Schedule Flow
+
+*** 9:00 - 9:30 AM: Arrival & Setup
+- Check-in with badge
+- Get name tag/stickers
+- Coffee & light breakfast
+- Network with early arrivals
+
+*** 9:30 - 10:00 AM: Opening Circle
+- Welcome & instructions
+- Introduce unconference format
+- Topic proposal process
+- Session scheduling
+
+*** 10:00 - 10:30 AM: Session Planning
+- Propose session topics
+- Vote on interest
+- Create schedule grid
+- Choose first sessions
+
+*** 10:30 AM - 12:00 PM: Morning Sessions
+- 2-3 parallel tracks
+- 30-45 minute sessions
+- Open discussion format
+- Note-taking encouraged
+
+*** 12:00 - 1:00 PM: Lunch
+- Included (dietary restrictions noted)
+- Continue conversations
+- Plan afternoon sessions
+
+*** 1:00 - 3:00 PM: Afternoon Sessions
+- More parallel tracks
+- Lightning talks possible
+- Hack sessions
+- Closing circle
+
+* Session Ideas to Propose
+
+** Technical Topics
+- [ ] "Async Rust: Real-world patterns"
+- [ ] "Embedded Rust success stories"
+- [ ] "WASM production experiences"
+- [ ] "Rust in data science"
+- [ ] "Building Rust teams"
+
+** Community Topics
+- [ ] "Contributing to Rust compiler"
+- [ ] "Starting local Rust meetups"
+- [ ] "Teaching Rust effectively"
+- [ ] "Rust in academia"
+- [ ] "Diversity in Rust community"
+
+** Practical Sessions
+- [ ] "Code review best practices"
+- [ ] "Debugging techniques"
+- [ ] "Performance profiling workshop"
+- [ ] "Security audit checklist"
+- [ ] "CI/CD optimization hacks"
+
+* UnConf Participation Tips
+
+** Law of Two Feet
+"If you're not learning or contributing, move to another session"
+- It's OK to leave mid-session
+- Find where you add value
+- No obligation to stay
+
+** Session Leadership
+- Anyone can lead a session
+- No expertise required
+- Facilitate, don't lecture
+- Questions > Answers
+
+** Note Taking
+- Shared Google Docs common
+- Discord for async discussion
+- GitHub gists for code
+- Tweet key insights
+
+** Networking Strategy
+- Introduce yourself in each session
+- Exchange contact info
+- Take photos of whiteboards
+- Follow up within 48 hours
+
+* Logistics
+
+** Morning Timeline
+- 7:30 AM: Wake up
+- 8:00 AM: Leave hotel
+- 8:15 AM: Catch transit/Lyft
+- 8:45 AM: Arrive at venue
+- 9:00 AM: Check-in
+- 9:15 AM: Coffee & mingle
+- 9:30 AM: Opening circle
+
+** Transit Options
+
+*** Public Transit (Recommended)
+#+BEGIN_SRC 
+From: Hyatt Regency Seattle
+To: Fremont Abbey Arts Center
+
+Route 62 Bus:
+- Walk to 3rd Ave & Pine St (5 min)
+- Take Route 62 northbound
+- Exit at Fremont Ave N & N 43rd St
+- Walk 2 minutes north
+- Total: ~22 minutes
+- Cost: $2.75
+#+END_SRC
+
+*** Rideshare
+- Uber/Lyft: $15-25
+- Time: 15-22 minutes
+- *Use Aurora Bridge route*
+- Avoid Fremont Bridge
+
+** Food & Breaks
+- Lunch provided
+- Dietary restrictions accommodated
+- Coffee/tea throughout
+- Water stations available
+
+* Discord Strategy
+
+** Channel Organization
+- #general - Main discussion
+- #session-notes - Live notes
+- #code-sharing - Code snippets
+- #networking - Contact exchange
+- #continuing-discussion - Post-event
+
+** During Sessions
+- Post session topics
+- Share notes in real-time
+- Ask questions
+- Share resources
+
+** Best Practices
+- Use threads for topics
+- Share GitHub gists
+- Tag people for follow-up
+- Post session summaries
+
+* Session Note Template
+
+#+BEGIN_SRC org
+#+TITLE: [Session Topic]
+#+FACILITATOR: [Name]
+#+TIME: [Start-End]
+#+ATTENDEES: ~[number]
+
+* Key Question/Problem
+[What are we trying to solve/discuss?]
+
+* Discussion Points
+- Point 1
+  - Sub-point
+  - Example/code
+- Point 2
+- Point 3
+
+* Action Items
+- [ ] Item 1 - @person
+- [ ] Item 2 - @person
+
+* Resources Shared
+- Link 1
+- Link 2
+
+* Key Takeaways
+1. 
+2. 
+3. 
+
+* Follow-up
+- Discord thread: #channel
+- GitHub issue: link
+- Next steps: 
+#+END_SRC
+
+* Topic Ideas Based on Conference
+
+** From Wednesday/Thursday Sessions
+1. "Implementing Burn vs PyTorch"
+2. "CI cost reduction workshop"
+3. "Supply chain security practices"
+4. "Rust adoption strategies"
+5. "C to Rust migration patterns"
+
+** Gaps to Address
+1. "Rust GUI frameworks comparison"
+2. "Async troubleshooting"
+3. "Production debugging"
+4. "Team training approaches"
+5. "Metrics and observability"
+
+** Hands-on Sessions
+1. "Live coding: Build a CLI"
+2. "Profiling workshop"
+3. "Security audit practice"
+4. "Code review session"
+5. "Architecture patterns"
+
+* Networking Goals
+
+** People to Find
+- [ ] Other CI/CD optimizers
+- [ ] Embedded Rust users
+- [ ] Formal verification practitioners
+- [ ] Rust educators
+- [ ] Open source maintainers
+
+** Questions to Ask
+- What's your biggest Rust challenge?
+- What tools do you wish existed?
+- How did you learn Rust?
+- What's your production story?
+- Want to collaborate on X?
+
+** Follow-up Commitments
+- [ ] Exchange GitHub handles
+- [ ] Share session notes
+- [ ] Schedule video calls
+- [ ] Collaborate on projects
+- [ ] Write blog posts together
+
+* Post-UnConf Actions
+
+** Same Day (Friday)
+- [ ] Upload notes to GitHub
+- [ ] Post key insights to Discord
+- [ ] Thank facilitators
+- [ ] Submit feedback form: https://bit.ly/rustconf-feedback-25
+
+** Weekend
+- [ ] Organize notes
+- [ ] Follow up with contacts
+- [ ] Create action items list
+- [ ] Share learnings with team
+- [ ] Plan implementation
+
+** Next Week
+- [ ] Schedule follow-up calls
+- [ ] Start collaboration projects
+- [ ] Implement learned techniques
+- [ ] Write blog post
+- [ ] Share with local Rust group
+
+* Emergency Contacts
+
+** Venue
+- Fremont Abbey Arts Center
+- 4272 Fremont Ave N
+- Seattle, WA 98103
+
+** RustConf Team
+- Discord: #help channel
+- Email: (check registration email)
+
+** Orders/Tickets
+- Order: CMSS (UnConf)
+- Ticket: CMSS-1
+- Also have: BCVB-1 (Main conf)
+- Virtual: UXSR-1
+
+* Key Reminders
+
+⚠️ *ARRIVE BY 9:00 AM OR LOSE SPOT*
+🚗 *TAKE AURORA BRIDGE (not Fremont)*
+💼 *DIFFERENT VENUE FROM MAIN CONF*
+📱 *DISCORD IS ESSENTIAL*
+🎒 *BRING LAPTOP + CHARGER*
+🎫 *HAVE BADGE READY*
+
+* Session Proposals Draft
+
+** 1. "75% Cheaper CI: Implementing Marco's Strategies"
+- Share what we learned yesterday
+- Workshop implementation for GitHub Actions
+- Cost calculation spreadsheet
+- Group troubleshooting
+
+** 2. "Formal Verification with Kani: Getting Started"
+- Based on AWS talk
+- Install and setup
+- Write first proofs
+- When to use verification
+
+** 3. "Rust Adoption: Lessons from Amazon & Others"
+- Discuss Russell's talk
+- Share our experiences
+- Create adoption playbook
+- Common pitfalls
+
+---
+
+*Remember:* UnConf is what we make it. Be bold, propose sessions, participate actively!

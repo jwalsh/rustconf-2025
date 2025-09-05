@@ -295,3 +295,58 @@ All attendees must follow the [[https://www.rust-lang.org/policies/code-of-condu
 
 ** Livestream
 Select sessions will be livestreamed and recorded for later viewing
+
+-----
+
+* Friday, September 5 - UnConference Day
+
+** CRITICAL: Different Venue!
+- *Location:* Fremont Abbey Arts Center (NOT Hyatt Regency)
+- *Address:* 4272 Fremont Ave N, Seattle, WA 98103
+- *Transport:* Take Aurora Bridge route (avoid Fremont drawbridge)
+
+** Schedule
+
+*** 9:00 - 9:30 AM - Registration & Check-in :CRITICAL:
+- *MUST ARRIVE BY 9:00 AM* or spot given to waitlist
+- Badge and QR code required
+- Coffee and light breakfast
+
+*** 9:30 - 10:00 AM - Opening Circle
+- Welcome and unconference format introduction
+- Topic proposal instructions
+- Session scheduling process
+
+*** 10:00 - 10:30 AM - Session Planning
+- Propose session topics
+- Vote on interest levels
+- Create schedule grid
+- Choose first sessions
+
+*** 10:30 AM - 12:00 PM - Morning Sessions
+- 2-3 parallel tracks
+- 30-45 minute sessions
+- Open discussion format
+
+*** 12:00 - 1:00 PM - Lunch (Provided)
+- Continue networking
+- Plan afternoon sessions
+
+*** 1:00 - 3:00 PM - Afternoon Sessions
+- More parallel tracks
+- Lightning talks
+- Hack sessions
+- Closing circle
+
+** What is an UnConference?
+- Participant-driven agenda
+- No predetermined speakers
+- Topics proposed by attendees
+- Self-organizing sessions
+- Open discussions and collaboration
+
+** Essential Information
+- *Discord:* https://discord.gg/EBYexM3eTD (required for coordination)
+- *Capacity:* Limited - full capacity event
+- *Format:* Choose your own sessions
+- *Law of Two Feet:* Move between sessions as needed
