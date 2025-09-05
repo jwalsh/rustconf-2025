@@ -1,0 +1,271 @@
+#+TITLE: Automated "Clever" Property-Based Testing
+#+FACILITATOR: Isaac Chen
+#+EMAIL: isaacjchen1@gmail.com
+#+TAGS: testing property-testing automation quality
+#+OPTIONS: toc:2 num:t
+
+* Session Overview
+
+I want to have a conversation about property-based testing, why it's awesome, and how we could make it even more awesome in Rust! Focus on making PBT "clever" - automatically discovering properties and generating better test cases.
+
+** The Vision
+- Tests that write themselves
+- Smarter test generation
+- Automatic invariant discovery
+- Better shrinking strategies
+
+* Current Property Testing
+
+** Basic Example
+#+BEGIN_SRC rust
+use proptest::prelude::*;
+
+proptest! {
+    #[test]
+    fn test_sort_idempotent(mut vec: Vec<i32>) {
+        let first_sort = {
+            let mut v = vec.clone();
+            v.sort();
+            v
+        };
+        
+        vec.sort();
+        vec.sort(); // Second sort
+        
+        assert_eq!(vec, first_sort);
+    }
+}
+#+END_SRC
+
+** Current Limitations
+1. Manual property identification
+2. Basic shrinking algorithms
+3. No learning from failures
+4. Limited generation strategies
+
+* Making It "Clever"
+
+** Automatic Property Discovery
+#+BEGIN_SRC rust
+// Proposed: Derive properties from types
+#[derive(AutoProperties)]
+struct BankAccount {
+    #[invariant(self.balance >= 0)]
+    balance: i64,
+    
+    #[invariant(self.transactions.iter().sum() == self.balance)]
+    transactions: Vec<i64>,
+}
+
+// Automatically generates:
+// - Balance never negative
+// - Transactions sum to balance
+// - Serialization round-trip
+// - Equality properties
+#+END_SRC
+
+** Smart Generation
+#+BEGIN_SRC rust
+// Learn from previous runs
+#[smart_proptest]
+fn test_parser(input: SmartString) {
+    // SmartString learns what causes failures
+    // and biases generation toward edge cases
+    
+    let result = parse(input);
+    assert!(result.is_ok() || is_valid_error(result));
+}
+
+// The generator remembers:
+// - Inputs that caused failures
+// - Boundary conditions discovered
+// - Patterns that trigger branches
+#+END_SRC
+
+** Metamorphic Testing
+#+BEGIN_SRC rust
+#[metamorphic_test]
+fn test_compression(data: Vec<u8>) {
+    // Automatically discover relationships
+    
+    // Compression -> Decompression = Identity
+    assert_eq!(decompress(compress(&data)), data);
+    
+    // Compress twice ≈ Compress once
+    assert!(compress(compress(&data)).len() >= compress(&data).len());
+    
+    // Discovered: Concatenation property
+    // compress(a + b) ≈ compress(a) + compress(b) for some algorithms
+}
+#+END_SRC
+
+* Advanced Techniques
+
+** Coverage-Guided Generation
+#+BEGIN_SRC rust
+// Use code coverage to guide generation
+#[coverage_guided_proptest]
+fn test_state_machine(ops: Vec<Operation>) {
+    let mut machine = StateMachine::new();
+    
+    for op in ops {
+        machine.apply(op);
+        assert!(machine.is_valid());
+    }
+}
+
+// Generator tries to:
+// - Reach uncovered code paths
+// - Trigger rare branches
+// - Find minimal sequences to each state
+#+END_SRC
+
+** Differential Testing
+#+BEGIN_SRC rust
+#[differential_test]
+fn test_optimization(input: Program) {
+    let unoptimized = interpret(&input);
+    let optimized = interpret(&optimize(&input));
+    
+    assert_eq!(unoptimized, optimized);
+    
+    // Automatically:
+    // - Finds programs where optimization changes behavior
+    // - Minimizes to smallest failing program
+    // - Suggests fix locations
+}
+#+END_SRC
+
+** Statistical Properties
+#+BEGIN_SRC rust
+#[statistical_proptest(samples = 10000)]
+fn test_random_distribution(seed: u64) {
+    let mut rng = MyRng::new(seed);
+    let samples: Vec<f64> = (0..1000).map(|_| rng.gen()).collect();
+    
+    // Automatically verify:
+    assert_uniform_distribution!(samples, 0.0..1.0);
+    assert_independence!(samples);
+    assert_no_bias!(samples);
+}
+#+END_SRC
+
+* Learning and Adaptation
+
+** Failure Database
+#+BEGIN_SRC rust
+// Store and learn from failures
+struct PropertyDatabase {
+    failures: HashMap<TestId, Vec<FailureCase>>,
+    patterns: Vec<FailurePattern>,
+    generators: HashMap<TypeId, Box<dyn Generator>>,
+}
+
+impl PropertyDatabase {
+    fn update_generator(&mut self, type_id: TypeId, failure: &FailureCase) {
+        // Adjust generation strategy based on failure
+        let gen = self.generators.get_mut(&type_id).unwrap();
+        gen.add_bias_toward(failure.extract_pattern());
+    }
+}
+#+END_SRC
+
+** Cross-Test Learning
+#+BEGIN_SRC rust
+// Learn across different tests
+#[learning_proptest(database = "project.propdb")]
+fn test_function_a(input: ComplexInput) {
+    // This test learns from failures in test_function_b
+    // if they share similar input types
+}
+#+END_SRC
+
+* Implementation Ideas
+
+** Procedural Macros
+#+BEGIN_SRC rust
+// Analyze function to extract properties
+#[auto_proptest]
+fn sort<T: Ord>(vec: &mut Vec<T>) {
+    // Macro analyzes and generates:
+    // - Length preservation
+    // - Element preservation (multiset)
+    // - Ordering property
+    // - Idempotence
+}
+#+END_SRC
+
+** IDE Integration
+- Inline property suggestions
+- Automatic property extraction from docs
+- Visual coverage indicators
+- Failure pattern recognition
+
+* Discussion Topics
+
+** Key Questions
+- What properties are hard to express?
+- How much automation is useful?
+- Performance vs thoroughness?
+- Learning across projects?
+
+** Technical Challenges
+- Shrinking complex structures
+- Generation strategy selection
+- Property composition
+- Statistical validation
+
+* Tool Integration
+
+** CI/CD Pipeline
+#+BEGIN_SRC yaml
+property-testing:
+  stage: test
+  script:
+    - cargo proptest --clever
+    - cargo proptest --replay-failures
+    - cargo proptest --discover-properties
+  artifacts:
+    paths:
+      - proptest-database/
+    reports:
+      coverage: proptest-coverage.json
+#+END_SRC
+
+** Fuzzing Integration
+#+BEGIN_SRC rust
+// Combine with fuzzing
+#[propfuzz]
+fn test_parser(data: &[u8]) {
+    // Use property test for structure
+    // Use fuzzing for exploration
+    if let Ok(input) = String::from_utf8(data.to_vec()) {
+        property_test_parser(input);
+    }
+}
+#+END_SRC
+
+* Expected Outcomes
+
+** Short-term
+- Better generation strategies
+- Property discovery tools
+- Database of patterns
+
+** Long-term
+- ML-guided generation
+- Cross-project learning
+- Automatic property synthesis
+- Industry adoption
+
+* Resources
+
+** Inspiration
+- Hypothesis (Python) - Sophisticated shrinking
+- QuickCheck (Haskell) - Original ideas
+- AFL++ - Coverage-guided fuzzing
+- Echidna - Smart contract testing
+
+---
+
+*Priority:* HIGH - Dramatically improves test quality

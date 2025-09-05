@@ -1,0 +1,264 @@
+#+TITLE: Open Enums - With Data??
+#+FACILITATOR: Alyssa Haroldsen
+#+EMAIL: alyssa@alyssa.codes
+#+TAGS: language-design abi forward-compatibility enums
+#+OPTIONS: toc:2 num:t
+
+* Session Overview
+
+How could we support ABI forwards-compatible enums with data? What restrictions are there and what would the syntax be? This is crucial for stable ABIs and long-term binary compatibility.
+
+** The Challenge
+- Enums are closed by default
+- Adding variants breaks ABI
+- Data makes it complex
+- Size must be predictable
+
+* Current Limitations
+
+** Closed Enums Problem
+#+BEGIN_SRC rust
+// Version 1.0
+#[repr(C)]
+pub enum Event {
+    Click,
+    KeyPress,
+}
+
+// Version 2.0 - Breaks ABI!
+#[repr(C)]
+pub enum Event {
+    Click,
+    KeyPress,
+    Scroll, // New variant breaks compatibility
+}
+#+END_SRC
+
+** C-Style Workaround
+#+BEGIN_SRC rust
+// Current workaround - no data allowed
+#[repr(C)]
+pub enum Event {
+    Click = 1,
+    KeyPress = 2,
+    Unknown = 255,
+}
+#+END_SRC
+
+* Proposed Open Enum Design
+
+** Basic Syntax
+#+BEGIN_SRC rust
+#[repr(C, open)]
+pub enum Event {
+    Click { x: i32, y: i32 },
+    KeyPress { key: char },
+    #[unknown]
+    Unknown(u32, [u8; 32]), // Tag + inline data
+}
+
+// Future versions can add:
+#[repr(C, open)]
+pub enum Event {
+    Click { x: i32, y: i32 },
+    KeyPress { key: char },
+    Scroll { delta: f32 },  // New variant OK!
+    #[unknown]
+    Unknown(u32, [u8; 32]),
+}
+#+END_SRC
+
+** Size Constraints
+#+BEGIN_SRC rust
+// Must specify maximum size
+#[repr(C, open(size = 40))]
+pub enum Message {
+    Small { id: u32 },           // 4 bytes
+    Medium { id: u32, data: u64 }, // 12 bytes
+    #[unknown(remaining)]
+    Unknown(u32, [u8; 36]),      // Uses remaining space
+}
+#+END_SRC
+
+* Design Considerations
+
+** Memory Layout
+#+BEGIN_SRC
+┌─────────────┬──────────────────────────┐
+│ Discriminant│         Data             │
+│   (4 bytes) │    (size - 4 bytes)      │
+└─────────────┴──────────────────────────┘
+
+Known variant: Discriminant + Variant Data
+Unknown variant: Discriminant + Raw Bytes
+#+END_SRC
+
+** Compatibility Rules
+1. Can add new variants
+2. Cannot remove variants
+3. Cannot change variant data
+4. Unknown must handle future variants
+5. Size is fixed at definition
+
+* Implementation Patterns
+
+** Version Negotiation
+#+BEGIN_SRC rust
+#[repr(C, open)]
+pub enum Request {
+    #[since(version = "1.0")]
+    GetData { id: u32 },
+    
+    #[since(version = "2.0")]
+    Subscribe { topic: [u8; 16] },
+    
+    #[unknown]
+    Unknown(u32, [u8; 32]),
+}
+
+impl Request {
+    fn is_supported(&self, version: &Version) -> bool {
+        match self {
+            Request::Subscribe { .. } if version < &Version::new(2, 0) => false,
+            Request::Unknown(..) => false,
+            _ => true,
+        }
+    }
+}
+#+END_SRC
+
+** Safe Downcasting
+#+BEGIN_SRC rust
+trait OpenEnum {
+    fn try_decode<T>(&self) -> Option<T>
+    where
+        T: DecodeVariant;
+}
+
+match event.try_decode::<ClickEvent>() {
+    Some(click) => handle_click(click),
+    None => handle_unknown(event),
+}
+#+END_SRC
+
+* Use Cases
+
+** Plugin Systems
+#+BEGIN_SRC rust
+#[repr(C, open)]
+pub enum PluginMessage {
+    Initialize { version: u32 },
+    Execute { command: [u8; 64] },
+    Shutdown,
+    #[unknown]
+    Extension(u32, [u8; 128]),
+}
+#+END_SRC
+
+** Network Protocols
+#+BEGIN_SRC rust
+#[repr(C, open)]
+pub enum NetworkPacket {
+    Data { seq: u32, payload: [u8; 1024] },
+    Ack { seq: u32 },
+    Nack { seq: u32, reason: u32 },
+    #[unknown]
+    Future(u16, [u8; 1024]),
+}
+#+END_SRC
+
+** Operating System APIs
+#+BEGIN_SRC rust
+#[repr(C, open)]
+pub enum SystemEvent {
+    FileOpen { fd: i32, flags: u32 },
+    NetworkConnect { socket: i32, addr: [u8; 16] },
+    ProcessSpawn { pid: u32 },
+    #[unknown]
+    NewEvent(u32, [u8; 64]),
+}
+#+END_SRC
+
+* Syntax Alternatives
+
+** Option 1: Attribute-based
+#+BEGIN_SRC rust
+#[open_enum(size = 64)]
+pub enum Message {
+    #[variant]
+    Known { data: u32 },
+    #[catch_all]
+    Unknown(Box<[u8]>),
+}
+#+END_SRC
+
+** Option 2: New Keyword
+#+BEGIN_SRC rust
+open enum Message: 64 {
+    Known { data: u32 },
+    ..Unknown(bytes),
+}
+#+END_SRC
+
+** Option 3: Generic Parameter
+#+BEGIN_SRC rust
+enum Message<const OPEN: bool = true, const SIZE: usize = 64> {
+    Known { data: u32 },
+    Unknown([u8; SIZE]),
+}
+#+END_SRC
+
+* Discussion Topics
+
+** Key Questions
+- Fixed size vs dynamic size?
+- How to handle variant evolution?
+- Interaction with pattern matching?
+- Performance implications?
+
+** Compatibility Concerns
+- How to prevent size overflow?
+- Versioning strategy?
+- Documentation requirements?
+- Testing approaches?
+
+* Comparison with Other Languages
+
+| Language | Feature | Approach |
+|----------+---------+----------|
+| C | Tagged unions | Manual management |
+| Swift | @unknown default | Compile-time only |
+| Protobuf | Unknown fields | Dynamic allocation |
+| Rust | Current | None |
+
+* Action Items
+
+** During Session
+- [ ] Finalize syntax preferences
+- [ ] Identify critical use cases
+- [ ] Discuss safety guarantees
+- [ ] Plan RFC structure
+
+** Post-Session
+- [ ] Draft RFC
+- [ ] Prototype implementation
+- [ ] Create examples
+- [ ] Get lang team feedback
+
+* Expected Outcomes
+
+** Technical Design
+- Clear semantics
+- Safety guarantees
+- Migration path
+- Performance model
+
+** Ecosystem Impact
+- Enable stable ABIs
+- Better FFI story
+- Plugin architectures
+- Protocol evolution
+
+---
+
+*Priority:* HIGH - Critical for ABI stability

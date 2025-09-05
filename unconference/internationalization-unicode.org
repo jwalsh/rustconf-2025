@@ -1,0 +1,248 @@
+#+TITLE: Internationalization and Unicode in Rust
+#+FACILITATOR: Manish Goregaokar
+#+EMAIL: manishearth@google.com
+#+TAGS: i18n unicode text-processing localization
+#+OPTIONS: toc:2 num:t
+
+* Session Overview
+
+Let's talk about i18n/unicode in Rust: what's working, what's not, what's needed. This covers text processing, localization, Unicode handling, and making Rust applications work globally.
+
+** Current State
+- Good: Strong UTF-8 support
+- Mixed: Unicode crate ecosystem
+- Missing: Standard i18n framework
+- Challenge: Performance vs correctness
+
+* Unicode in Rust Today
+
+** What Works Well
+#+BEGIN_SRC rust
+// UTF-8 by default
+let text = "Hello, 世界! 🦀";
+assert!(text.is_char_boundary(7));
+
+// Grapheme clusters
+use unicode_segmentation::UnicodeSegmentation;
+let graphemes: Vec<&str> = "é".graphemes(true).collect();
+
+// Normalization
+use unicode_normalization::UnicodeNormalization;
+let normalized = "café".nfc().collect::<String>();
+#+END_SRC
+
+** Pain Points
+1. String indexing confusion
+2. Grapheme vs char iteration
+3. Text width calculation
+4. Collation and sorting
+5. Case conversion complexity
+
+* Key i18n Challenges
+
+** Text Boundaries
+#+BEGIN_SRC rust
+// Problem: What is a "character"?
+let text = "👨‍👩‍👧‍👦";  // Family emoji
+println!("{}", text.len());        // 25 bytes!
+println!("{}", text.chars().count()); // 7 "chars"
+
+// Solution: Grapheme clusters
+use unicode_segmentation::UnicodeSegmentation;
+println!("{}", text.graphemes(true).count()); // 1 grapheme
+#+END_SRC
+
+** Locale-Aware Operations
+#+BEGIN_SRC rust
+// Need: Locale-specific sorting
+let words = vec!["zebra", "Äpfel", "öl"];
+// German: Äpfel < öl < zebra
+// Swedish: zebra < Äpfel < öl
+
+// Current: No standard solution
+use icu::collator::{Collator, CollatorOptions};
+let collator = Collator::try_new(&locale!("de"), CollatorOptions::new());
+#+END_SRC
+
+** Text Display Width
+#+BEGIN_SRC rust
+// Terminal/console width
+use unicode_width::UnicodeWidthStr;
+assert_eq!("hello".width(), 5);
+assert_eq!("你好".width(), 4);  // CJK = 2 columns each
+
+// But combining marks complicate things
+assert_eq!("é".width(), 1);  // Depends on normalization!
+#+END_SRC
+
+* Localization Framework
+
+** Message Formatting
+#+BEGIN_SRC rust
+// Fluent-rs example
+use fluent::{FluentBundle, FluentResource};
+
+let ftl_string = r#"
+hello = Hello, { $name }!
+items-count = { $count ->
+    [0] No items
+    [one] One item
+   *[other] { $count } items
+}
+"#;
+
+let resource = FluentResource::try_new(ftl_string).unwrap();
+let mut bundle = FluentBundle::default();
+bundle.add_resource(&resource).unwrap();
+#+END_SRC
+
+** Plural Rules
+#+BEGIN_SRC rust
+// Different languages have different plural rules
+match (lang, count) {
+    ("en", 1) => "one",
+    ("en", _) => "other",
+    ("pl", n) if n == 1 => "one",
+    ("pl", n) if n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) => "few",
+    ("pl", _) => "many",
+    // ... hundreds more rules
+}
+#+END_SRC
+
+* Missing Pieces
+
+** Standard i18n Crate
+What we need:
+- Message formatting
+- Plural/gender handling  
+- Date/time formatting
+- Number formatting
+- Currency handling
+- Locale detection
+
+** Better Unicode APIs
+#+BEGIN_SRC rust
+// Proposed std additions
+trait StrUnicode {
+    fn graphemes(&self) -> Graphemes;
+    fn words(&self) -> Words;
+    fn sentences(&self) -> Sentences;
+    fn display_width(&self) -> usize;
+    fn normalize_nfc(&self) -> String;
+}
+#+END_SRC
+
+** Compile-Time i18n
+#+BEGIN_SRC rust
+// Macro for compile-time checking
+i18n! {
+    #[message(en = "Hello, {name}!", de = "Hallo, {name}!")]
+    fn greeting(name: &str) -> String;
+    
+    #[plural(en)]
+    fn items(count: usize) -> &'static str {
+        0 => "No items",
+        1 => "One item",
+        _ => "{count} items",
+    }
+}
+#+END_SRC
+
+* Performance Considerations
+
+** UTF-8 Validation
+#+BEGIN_SRC rust
+// Fast validation with SIMD
+use std::str::from_utf8;
+
+// Current: Already optimized
+let bytes = b"Hello, world!";
+let text = from_utf8(bytes)?;
+
+// But still room for improvement in:
+// - Streaming validation
+// - Partial validation
+// - Error recovery
+#+END_SRC
+
+** String Building
+#+BEGIN_SRC rust
+// Efficient multilingual string building
+struct I18nString {
+    buffer: String,
+    width: usize,  // Display width cache
+    graphemes: usize, // Grapheme count cache
+}
+
+impl I18nString {
+    fn push_str(&mut self, s: &str) {
+        self.buffer.push_str(s);
+        self.width += s.width();
+        self.graphemes += s.graphemes(true).count();
+    }
+}
+#+END_SRC
+
+* Ecosystem Coordination
+
+** Current Fragmentation
+| Task | Crates | Problem |
+|------+--------+---------|
+| Unicode data | unicode-* | Multiple versions |
+| Localization | fluent, i18n-embed | Incompatible |
+| ICU bindings | icu, icu4x | Different APIs |
+| Text shaping | rustybuzz, harfbuzz | Duplication |
+
+** Proposed Unification
+- Standard traits for common operations
+- Shared Unicode data
+- Common locale types
+- Coordinated versioning
+
+* Discussion Topics
+
+** Priorities
+- What's most painful today?
+- Standard library additions?
+- Performance vs correctness?
+- WebAssembly support?
+
+** Design Questions
+- How much in std?
+- Trait design?
+- Default behavior?
+- Error handling?
+
+* Action Items
+
+** During Session
+- [ ] List pain points
+- [ ] Prioritize features
+- [ ] Design core traits
+- [ ] Plan coordination
+
+** Post-Session
+- [ ] Create i18n-wg
+- [ ] Prototype std additions
+- [ ] Coordinate crates
+- [ ] Write guidelines
+
+* Resources
+
+** Key Crates
+- unicode-segmentation
+- unicode-normalization
+- unicode-width
+- fluent-rs
+- icu4x
+- unic
+
+** Standards
+- Unicode Standard
+- CLDR (locale data)
+- ICU documentation
+- ECMA-402 (JS Intl)
+
+---
+
+*Priority:* HIGH - Essential for global applications

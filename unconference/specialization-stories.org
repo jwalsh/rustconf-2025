@@ -1,0 +1,281 @@
+#+TITLE: Specialization Stories
+#+FACILITATOR: Jack Huey
+#+EMAIL: jackh726@gmail.com
+#+TAGS: language-design traits type-system performance
+#+OPTIONS: toc:2 num:t
+
+* Session Overview
+
+Come talk about your use cases for specialization! Share examples of how you want to use it. Specialization has been in development for years - let's discuss real-world needs and help shape its final form.
+
+** What is Specialization?
+- Override trait implementations
+- More specific impl wins
+- Performance optimizations
+- API flexibility
+
+* Current Status
+
+** The Long Road
+- RFC 1210 (2015) - Initial proposal
+- RFC 2451 (2018) - Min specialization
+- Still unstable in 2025
+- Soundness concerns remain
+
+** Basic Example (Unstable)
+#+BEGIN_SRC rust
+#![feature(specialization)]
+
+trait Example {
+    fn method(&self);
+}
+
+// General implementation
+impl<T> Example for T {
+    default fn method(&self) {
+        println!("Generic implementation");
+    }
+}
+
+// Specialized for String
+impl Example for String {
+    fn method(&self) {
+        println!("Optimized for String: {}", self);
+    }
+}
+#+END_SRC
+
+* Real-World Use Cases
+
+** Performance Optimization
+#+BEGIN_SRC rust
+trait FastClone {
+    fn fast_clone(&self) -> Self;
+}
+
+// Generic implementation
+impl<T: Clone> FastClone for T {
+    default fn fast_clone(&self) -> Self {
+        self.clone()
+    }
+}
+
+// Specialized for Copy types - much faster!
+impl<T: Copy> FastClone for T {
+    fn fast_clone(&self) -> Self {
+        *self  // Just copy bytes
+    }
+}
+
+// Specialized for Arc - just increment counter
+impl<T> FastClone for Arc<T> {
+    fn fast_clone(&self) -> Self {
+        Arc::clone(self)  // Optimized path
+    }
+}
+#+END_SRC
+
+** Serialization Optimization
+#+BEGIN_SRC rust
+trait Serialize {
+    fn serialize(&self, buf: &mut Vec<u8>);
+}
+
+// Generic implementation
+impl<T: Debug> Serialize for T {
+    default fn serialize(&self, buf: &mut Vec<u8>) {
+        write!(buf, "{:?}", self).unwrap();
+    }
+}
+
+// Specialized for primitives
+impl Serialize for u32 {
+    fn serialize(&self, buf: &mut Vec<u8>) {
+        buf.extend_from_slice(&self.to_le_bytes());
+    }
+}
+
+// Specialized for arrays
+impl<T: Serialize, const N: usize> Serialize for [T; N] {
+    fn serialize(&self, buf: &mut Vec<u8>) {
+        for item in self {
+            item.serialize(buf);
+        }
+    }
+}
+#+END_SRC
+
+** Display with Fallback
+#+BEGIN_SRC rust
+trait DisplayWithFallback {
+    fn display_or_debug(&self) -> String;
+}
+
+// Everything gets Debug fallback
+impl<T: Debug> DisplayWithFallback for T {
+    default fn display_or_debug(&self) -> String {
+        format!("{:?}", self)
+    }
+}
+
+// But Display types get better output
+impl<T: Display> DisplayWithFallback for T {
+    fn display_or_debug(&self) -> String {
+        format!("{}", self)
+    }
+}
+#+END_SRC
+
+* Advanced Patterns
+
+** Lattice Specialization
+#+BEGIN_SRC rust
+// Multiple specialization paths
+trait Process {
+    fn process(&self);
+}
+
+impl<T> Process for T {
+    default fn process(&self) { /* Base */ }
+}
+
+impl<T: Send> Process for T {
+    default fn process(&self) { /* Parallel */ }
+}
+
+impl<T: Send + Sync> Process for T {
+    fn process(&self) { /* Full parallel */ }
+}
+#+END_SRC
+
+** Associated Type Specialization
+#+BEGIN_SRC rust
+trait Container {
+    type Item;
+    fn get(&self) -> &Self::Item;
+}
+
+impl<T> Container for Vec<T> {
+    default type Item = T;
+    default fn get(&self) -> &T { &self[0] }
+}
+
+impl Container for Vec<String> {
+    type Item = str;  // Specialize to return &str
+    fn get(&self) -> &str { &self[0] }
+}
+#+END_SRC
+
+* Problems and Solutions
+
+** Soundness Issues
+#+BEGIN_SRC rust
+// This is unsound!
+trait Foo {
+    fn foo(&self);
+}
+
+impl<T> Foo for T {
+    default fn foo(&self) {}
+}
+
+impl<T: Clone> Foo for T {
+    fn foo(&self) {
+        // Can't assume T: Clone here!
+        // Other impls might not have Clone
+    }
+}
+#+END_SRC
+
+** Proposed Solutions
+1. Always applicable impls
+2. Intersection impls
+3. Negative reasoning
+4. Min specialization only
+
+* Use Case Stories
+
+** Database Optimization
+"We have a generic serialization trait but want to optimize for specific types like UUID, DateTime, etc. Without specialization, we need separate traits or runtime checks."
+
+** Async Runtime
+"Different async implementations for Send vs !Send types. Currently requires two separate traits."
+
+** Collection Libraries
+"Want to provide optimized implementations for Copy types vs Clone types vs neither."
+
+** FFI Bindings
+"Automatic marshalling with specialization for primitive types vs complex types."
+
+* Discussion Topics
+
+** Key Questions
+- What's your blocked use case?
+- Min specialization sufficient?
+- Performance vs correctness trade-offs?
+- Documentation challenges?
+
+** Design Decisions
+- Always applicable rule?
+- Intersection types needed?
+- Negative bounds interaction?
+- Lifetime specialization?
+
+* Alternative Approaches
+
+** Without Specialization
+| Approach | Pros | Cons |
+|----------+------+------|
+| Multiple traits | Works today | API complexity |
+| Runtime dispatch | Flexible | Performance cost |
+| Macros | Powerful | Compile time |
+| Const generics | Type-safe | Limited |
+
+* Action Items
+
+** During Session
+- [ ] Collect concrete use cases
+- [ ] Identify minimum requirements
+- [ ] Discuss soundness concerns
+- [ ] Prioritize features
+
+** Post-Session
+- [ ] Document use cases
+- [ ] Contribute to RFC discussion
+- [ ] Test min_specialization
+- [ ] Create example repository
+
+* Resources
+
+** RFCs and Links
+- RFC 1210: Specialization
+- RFC 2451: Min specialization
+- Tracking issue: rust-lang/rust#31844
+- Blog: "Maximally minimal specialization"
+
+** Current Experiments
+#+BEGIN_SRC bash
+# Try min_specialization
+rustup install nightly
+cargo +nightly new --lib specialization-test
+
+# In lib.rs
+#![feature(min_specialization)]
+#+END_SRC
+
+* Expected Outcomes
+
+** Short-term
+- Use case collection
+- Priority features identified
+- Community consensus
+
+** Long-term
+- Stabilization path
+- Sound design
+- Ecosystem adoption
+- Performance wins
+
+---
+
+*Priority:* HIGH - Major language feature with wide impact

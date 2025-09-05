@@ -1,0 +1,241 @@
+#+TITLE: Onboarding New Contributors
+#+FACILITATOR: Eric Holk
+#+EMAIL: eric@theincredibleholk.org
+#+TAGS: community open-source mentoring contribution
+#+OPTIONS: toc:2 num:t
+
+* Session Overview
+
+How can we do a better job of helping Rustaceans become Project Members? I'm particularly interested in hearing from people who have tried and run into barriers.
+
+** The Challenge
+- High barrier to first contribution
+- Complex project structure
+- Unclear progression path
+- Impostor syndrome
+
+* Current Barriers
+
+** Technical Barriers
+1. *Build System Complexity*
+   - x.py confusion
+   - Long build times
+   - Disk space requirements
+   - Platform-specific issues
+
+2. *Codebase Navigation*
+   - Where to start?
+   - Understanding architecture
+   - Finding good first issues
+   - Test infrastructure
+
+3. *Process Confusion*
+   - PR workflow
+   - Review expectations
+   - Bors/merge queue
+   - Triage process
+
+** Social Barriers
+1. *Communication*
+   - Where to ask questions?
+   - Fear of looking stupid
+   - Time zone challenges
+   - Language barriers
+
+2. *Community Dynamics*
+   - Unclear expectations
+   - Review feedback tone
+   - Gatekeeping perception
+   - Burnout concerns
+
+* Successful Patterns
+
+** Mentorship Programs
+#+BEGIN_SRC org
+Good First Issue → Mentored Issue → Small Feature → Team Member
+
+Examples:
+- Rust Mentorship Program
+- GSoC/Outreachy
+- Corporate sponsorship
+- Pair programming sessions
+#+END_SRC
+
+** Documentation
+#+BEGIN_SRC markdown
+# Contributing to Rust
+
+## Quick Start (30 minutes)
+1. Fork and clone
+2. Build minimal compiler
+3. Make small change
+4. Run relevant tests
+5. Submit PR
+
+## Your First PR (2 hours)
+- Video walkthrough
+- Common pitfalls
+- Review checklist
+#+END_SRC
+
+* Improving Onboarding
+
+** Graduated Complexity
+#+BEGIN_SRC yaml
+Level 1: Documentation
+  - Fix typos
+  - Improve examples
+  - Add tests
+  
+Level 2: Diagnostics
+  - Better error messages
+  - Add suggestions
+  - UI tests
+
+Level 3: Libraries
+  - Small features
+  - Performance improvements
+  - API additions
+
+Level 4: Compiler
+  - Bug fixes
+  - Optimizations
+  - New lints
+
+Level 5: Language
+  - RFC implementation
+  - Type system
+  - Design work
+#+END_SRC
+
+** Tooling Improvements
+#+BEGIN_SRC bash
+# Proposed: Quick start script
+curl https://contribute.rust-lang.org | sh
+
+# Sets up:
+# - Minimal build
+# - IDE configuration  
+# - Git hooks
+# - Discord/Zulip access
+#+END_SRC
+
+** Mentorship Matching
+#+BEGIN_SRC rust
+struct Contributor {
+    interests: Vec<Area>,
+    timezone: Timezone,
+    experience: Level,
+    availability: Hours,
+}
+
+struct Mentor {
+    expertise: Vec<Area>,
+    timezone: Timezone,
+    capacity: usize,
+}
+
+fn match_mentor(contributor: &Contributor) -> Option<Mentor> {
+    // Find compatible mentor
+}
+#+END_SRC
+
+* Success Stories
+
+** Case Study 1: Diagnostics Team
+"Started with improving error messages, now maintaining diagnostic infrastructure"
+
+** Case Study 2: Documentation
+"Began fixing typos, became docs team lead"
+
+** Case Study 3: Corporate Contributor
+"Company time allocation led to compiler team membership"
+
+* Proposed Solutions
+
+** Quick Wins Board
+#+BEGIN_SRC markdown
+## This Week's Quick Wins
+
+### 30-minute tasks
+- [ ] Fix typo in std::vec docs
+- [ ] Add example to HashMap::entry
+- [ ] Update outdated link
+
+### 2-hour tasks
+- [ ] Improve error E0308 message
+- [ ] Add UI test for issue #12345
+- [ ] Document internal function
+
+### Weekend projects
+- [ ] Implement clippy lint
+- [ ] Performance optimization
+- [ ] Small feature
+#+END_SRC
+
+** Buddy System
+- New contributor paired with experienced member
+- Weekly check-ins
+- Code review partnership
+- Question answering
+
+** Recognition Program
+- Contributor of the month
+- First PR celebration
+- Team membership pathway
+- Conference speaker pipeline
+
+* Discussion Topics
+
+** Key Questions
+- What stopped you from contributing?
+- What helped you succeed?
+- How to measure success?
+- Resource requirements?
+
+** Ideas to Explore
+- Video tutorials?
+- Live coding sessions?
+- Regional meetups?
+- Student programs?
+
+* Action Items
+
+** During Session
+- [ ] Collect barrier experiences
+- [ ] Identify successful patterns
+- [ ] Design mentor program
+- [ ] Plan tooling improvements
+
+** Post-Session
+- [ ] Create onboarding guide
+- [ ] Set up mentor matching
+- [ ] Improve documentation
+- [ ] Launch pilot program
+
+* Metrics for Success
+
+| Metric | Current | Goal |
+|--------+---------+------|
+| First PR to second PR | 20% | 50% |
+| Time to first PR | 3 months | 1 month |
+| Contributor retention | 10% | 25% |
+| Diversity metrics | ? | Improve |
+
+* Resources
+
+** Getting Started
+- Rust Forge
+- Contributing Guide
+- rustc-dev-guide
+- This Week in Rust
+
+** Communication
+- Zulip
+- Discord
+- GitHub Discussions
+- Office Hours
+
+---
+
+*Priority:* CRITICAL - Essential for project sustainability

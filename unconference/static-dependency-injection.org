@@ -1,0 +1,231 @@
+#+TITLE: Static Dependency Injection that isn't Terrible
+#+FACILITATOR: Alyssa Haroldsen
+#+EMAIL: alyssa@alyssa.codes
+#+TAGS: design-patterns embedded performance zero-cost
+#+OPTIONS: toc:2 num:t
+
+* Session Overview
+
+On embedded and high perf systems, a single monomorphization will always be more efficient than dyn Trait. How do we do dependency injection with static monomorphization that isn't an explosion of complexity? The Dependency Trait pattern provides a starting point - let's extend and interrogate it!
+
+** Why This Matters
+- Zero-cost abstractions for DI
+- Critical for embedded systems
+- Testability without runtime overhead
+- Compile-time guarantees
+
+* The Problem Space
+
+** Dynamic Dispatch Limitations
+#+BEGIN_SRC rust
+// Runtime cost - vtable indirection
+trait Service {
+    fn process(&self) -> Result<()>;
+}
+
+struct App {
+    service: Box<dyn Service>, // Heap allocation + indirection
+}
+#+END_SRC
+
+** Current Static Approaches
+#+BEGIN_SRC rust
+// Generic explosion
+struct App<S: Service, D: Database, C: Cache> {
+    service: S,
+    database: D,
+    cache: C,
+}
+// Type signatures become unwieldy
+#+END_SRC
+
+* The Dependency Trait Pattern
+
+** Core Concept
+#+BEGIN_SRC rust
+// Dependencies as associated types
+trait HasDependencies {
+    type Database: Database;
+    type Cache: Cache;
+    type Logger: Logger;
+}
+
+// Single generic parameter
+struct App<D: HasDependencies> {
+    deps: D,
+}
+
+impl<D: HasDependencies> App<D> {
+    fn process(&self) -> Result<()> {
+        // Access via deps.database(), deps.cache(), etc.
+        Ok(())
+    }
+}
+#+END_SRC
+
+** Production vs Test Configurations
+#+BEGIN_SRC rust
+// Production dependencies
+struct ProdDeps {
+    db: PostgresDb,
+    cache: RedisCache,
+    logger: SysLogger,
+}
+
+impl HasDependencies for ProdDeps {
+    type Database = PostgresDb;
+    type Cache = RedisCache;
+    type Logger = SysLogger;
+}
+
+// Test dependencies
+struct TestDeps {
+    db: MockDb,
+    cache: InMemoryCache,
+    logger: TestLogger,
+}
+
+impl HasDependencies for TestDeps {
+    type Database = MockDb;
+    type Cache = InMemoryCache;
+    type Logger = TestLogger;
+}
+#+END_SRC
+
+* Advanced Patterns
+
+** Dependency Groups
+#+BEGIN_SRC rust
+// Group related dependencies
+trait CoreDeps {
+    type Storage: Storage;
+    type Network: Network;
+}
+
+trait AppDeps: CoreDeps {
+    type Auth: Authenticator;
+    type Metrics: MetricsCollector;
+}
+#+END_SRC
+
+** Builder Pattern Integration
+#+BEGIN_SRC rust
+struct DepsBuilder<S = (), N = (), A = ()> {
+    storage: S,
+    network: N,
+    auth: A,
+}
+
+impl DepsBuilder {
+    fn with_storage<S: Storage>(self, storage: S) -> DepsBuilder<S, N, A> {
+        // Type-safe builder
+    }
+}
+#+END_SRC
+
+* Discussion Topics
+
+** Key Questions
+- How to handle optional dependencies?
+- Circular dependency prevention?
+- Documentation strategies?
+- IDE support improvements?
+
+** Comparison with Other Languages
+| Language | Approach | Trade-offs |
+|----------+----------+------------|
+| Rust | Static monomorphization | Compile time, binary size |
+| Java | Runtime DI containers | Flexibility, runtime cost |
+| C++ | Templates | Similar to Rust |
+| Zig | Comptime | More flexible, less safe |
+
+* Real-World Examples
+
+** Embedded HTTP Server
+#+BEGIN_SRC rust
+trait ServerDeps {
+    type TcpStack: TcpStack;
+    type Allocator: Allocator;
+    type Clock: Clock;
+}
+
+struct HttpServer<D: ServerDeps> {
+    deps: D,
+    // No heap allocation needed
+}
+#+END_SRC
+
+** Game Engine
+#+BEGIN_SRC rust
+trait EngineDeps {
+    type Renderer: Renderer;
+    type Physics: PhysicsEngine;
+    type Audio: AudioSystem;
+    type Input: InputHandler;
+}
+#+END_SRC
+
+* Implementation Strategies
+
+** Macro Support
+#+BEGIN_SRC rust
+// Potential macro to reduce boilerplate
+#[derive(Dependencies)]
+struct MyDeps {
+    #[dep] db: PostgresDb,
+    #[dep] cache: RedisCache,
+    #[dep] logger: SysLogger,
+}
+#+END_SRC
+
+** Const Generics Integration
+#+BEGIN_SRC rust
+// Future possibilities with const generics
+struct App<const CONFIG: Config> {
+    // Compile-time configuration
+}
+#+END_SRC
+
+* Action Items
+
+** During Session
+- [ ] Share real-world use cases
+- [ ] Identify pain points
+- [ ] Brainstorm macro designs
+- [ ] Compare with other patterns
+
+** Post-Session
+- [ ] Create example repository
+- [ ] Write RFC for std support
+- [ ] Build macro crate
+- [ ] Document best practices
+
+* Expected Outcomes
+
+** Immediate Benefits
+- Cleaner dependency injection
+- Better testability
+- Zero runtime overhead
+- Type safety maintained
+
+** Long-term Goals
+- Standard library patterns
+- Macro ecosystem
+- IDE support
+- Community adoption
+
+* Resources
+
+** Related Crates
+- tower (service abstractions)
+- axum (type-safe extractors)
+- bevy (ECS with static dispatch)
+
+** Further Reading
+- "Type-Driven Design in Rust"
+- "Zero-Cost Abstractions"
+- "Dependency Injection Without the Magic"
+
+---
+
+*Priority:* HIGH - Essential for embedded and high-performance systems

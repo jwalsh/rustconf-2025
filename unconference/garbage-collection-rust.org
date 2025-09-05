@@ -1,0 +1,278 @@
+#+TITLE: Garbage Collection in Rust
+#+FACILITATOR: Kevin Ness
+#+EMAIL: nekevss@gmail.com
+#+TAGS: memory-management gc allocator runtime
+#+OPTIONS: toc:2 num:t
+
+* Session Overview
+
+Discuss garbage collection in Rust. How would mark-compacting work and/or generational garbage collection? How would that work with the Allocator API? This explores adding optional GC to Rust for specific use cases.
+
+** Why GC in Rust?
+- Simplify certain algorithms
+- Scripting language integration
+- Game development patterns
+- Teaching/prototyping
+
+* Current State
+
+** Existing GC Crates
+| Crate | Type | Status | Use Case |
+|-------+------+--------+----------|
+| gc | Tracing | Active | Simple GC |
+| bacon_rajan_cc | Cycle collection | Maintained | Reference counting |
+| shredder | Concurrent | Experimental | Parallel GC |
+| broom | Tracing | Simple | Educational |
+
+** Current Limitations
+- No compiler support
+- Manual rooting required
+- Performance overhead
+- Limited ecosystem integration
+
+* GC Design for Rust
+
+** Opt-in Architecture
+#+BEGIN_SRC rust
+// Explicit GC heap
+use std::gc::{GcHeap, Gc};
+
+let heap = GcHeap::new();
+let value: Gc<String> = heap.alloc(String::from("hello"));
+
+// Automatic collection
+heap.collect_if_needed();
+#+END_SRC
+
+** Integration with Ownership
+#+BEGIN_SRC rust
+// GC types must be Send + Sync
+struct Node {
+    value: i32,
+    next: Option<Gc<Node>>,
+}
+
+// Still have borrowing
+let node = Gc::new(Node { value: 42, next: None });
+let borrowed: &Node = &*node;  // Deref to borrow
+#+END_SRC
+
+* Mark-Compact Algorithm
+
+** Implementation Sketch
+#+BEGIN_SRC rust
+trait GcAllocator: Allocator {
+    fn mark_roots(&self);
+    fn trace_object(&self, ptr: NonNull<u8>);
+    fn compact(&mut self);
+}
+
+struct MarkCompactGc {
+    heap: Vec<u8>,
+    free_ptr: usize,
+    mark_bits: BitVec,
+    forward_table: HashMap<usize, usize>,
+}
+
+impl MarkCompactGc {
+    fn collect(&mut self) {
+        self.mark_phase();
+        self.compute_forwarding();
+        self.update_pointers();
+        self.compact_phase();
+    }
+}
+#+END_SRC
+
+** Compaction Benefits
+- Memory locality
+- Reduced fragmentation
+- Cache efficiency
+- Predictable allocation
+
+* Generational GC
+
+** Generation Design
+#+BEGIN_SRC rust
+struct GenerationalGc {
+    nursery: Arena,      // Young generation
+    mature: Arena,       // Old generation
+    remembered_set: HashSet<usize>, // Cross-gen references
+}
+
+impl GenerationalGc {
+    fn minor_gc(&mut self) {
+        // Collect only nursery
+        self.trace_from_roots();
+        self.promote_survivors();
+        self.nursery.reset();
+    }
+    
+    fn major_gc(&mut self) {
+        // Collect everything
+        self.mark_all();
+        self.sweep_all();
+    }
+}
+#+END_SRC
+
+** Write Barriers
+#+BEGIN_SRC rust
+// Compiler-inserted write barrier
+impl<T> DerefMut for Gc<T> {
+    fn deref_mut(&mut self) -> &mut T {
+        // Record in remembered set
+        if self.is_old() {
+            remembered_set.insert(self.ptr);
+        }
+        unsafe { &mut *self.ptr }
+    }
+}
+#+END_SRC
+
+* Allocator API Integration
+
+** Custom Allocator
+#+BEGIN_SRC rust
+#![feature(allocator_api)]
+
+struct GcAllocator {
+    heap: GcHeap,
+}
+
+unsafe impl Allocator for GcAllocator {
+    fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
+        // Trigger GC if needed
+        if self.heap.should_collect() {
+            self.heap.collect();
+        }
+        
+        // Allocate from GC heap
+        self.heap.allocate(layout)
+    }
+    
+    fn deallocate(&self, ptr: NonNull<u8>, layout: Layout) {
+        // No-op - GC handles deallocation
+    }
+}
+
+// Use with collections
+let vec: Vec<i32, GcAllocator> = Vec::new_in(GcAllocator::new());
+#+END_SRC
+
+* Use Cases
+
+** Scripting Languages
+#+BEGIN_SRC rust
+// Lua/Python/JS embedding
+struct ScriptEngine {
+    gc: GcHeap,
+    globals: HashMap<String, Gc<Value>>,
+}
+
+enum Value {
+    Number(f64),
+    String(Gc<String>),
+    Table(Gc<HashMap<Value, Value>>),
+    Function(Gc<Function>),
+}
+#+END_SRC
+
+** Graph Algorithms
+#+BEGIN_SRC rust
+// Cycles are natural with GC
+struct Graph {
+    nodes: Vec<Gc<GraphNode>>,
+}
+
+struct GraphNode {
+    value: i32,
+    edges: Vec<Gc<GraphNode>>, // Cycles OK!
+}
+#+END_SRC
+
+** Game Development
+#+BEGIN_SRC rust
+// Entity-Component with GC
+struct World {
+    entities: Vec<Gc<Entity>>,
+    gc: GcHeap,
+}
+
+impl World {
+    fn update(&mut self) {
+        // Update all entities
+        // GC handles dead entities
+    }
+}
+#+END_SRC
+
+* Discussion Topics
+
+** Design Questions
+- Compiler support needed?
+- Interaction with Drop?
+- Safe vs unsafe API?
+- Performance targets?
+
+** Integration Concerns
+- FFI boundaries
+- Async compatibility
+- Thread safety
+- Stack scanning
+
+* Comparison
+
+| Feature | Rust (Current) | Rust + GC | Java | Go |
+|---------+---------------+-----------+------+----|
+| Memory safety | Yes | Yes | Yes | Yes |
+| Predictable | Yes | Mostly | No | No |
+| Low latency | Yes | Sometimes | No | Mostly |
+| Simple cycles | No | Yes | Yes | Yes |
+
+* Implementation Challenges
+
+** Technical Issues
+1. Stack scanning for roots
+2. Interior pointers
+3. Unsafe code interaction
+4. FFI boundaries
+5. Compiler optimizations
+
+** Design Trade-offs
+- Opt-in vs automatic
+- Stop-the-world vs concurrent
+- Precise vs conservative
+- Generational vs simple
+
+* Action Items
+
+** During Session
+- [ ] Identify real use cases
+- [ ] Discuss API design
+- [ ] Performance requirements
+- [ ] Safety guarantees
+
+** Post-Session
+- [ ] Prototype implementation
+- [ ] Benchmark against alternatives
+- [ ] Write RFC if viable
+- [ ] Create examples
+
+* Resources
+
+** Existing Work
+- gc crate: [[https://github.com/Manishearth/rust-gc]]
+- shredder: [[https://github.com/Others/shredder]]
+- Academic papers on GC
+- LLVM GC infrastructure
+
+** Related Projects
+- Nim's GC
+- D's GC
+- OCaml's GC
+- Go's GC design
+
+---
+
+*Priority:* MEDIUM - Interesting for specific domains

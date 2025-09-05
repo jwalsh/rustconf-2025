@@ -1,0 +1,251 @@
+#+TITLE: Metadata for Cargo Features
+#+FACILITATOR: Landon James
+#+EMAIL: landonxjames@gmail.com
+#+TAGS: cargo tooling documentation ecosystem
+#+OPTIONS: toc:2 num:t
+
+* Session Overview
+
+Cargo features lack any associated context. We should support a small set of related metadata (documentation and a stable/unstable indicator at minimum). This would dramatically improve the developer experience when choosing and using features.
+
+** The Problem
+- Features are just names
+- No documentation in Cargo.toml
+- No stability guarantees
+- Discovery is difficult
+- Dependencies unclear
+
+* Current State
+
+** What We Have Now
+#+BEGIN_SRC toml
+[features]
+default = ["std"]
+std = []
+async = ["tokio", "futures"]
+experimental = ["unstable-feature"]
+# No way to indicate what these do!
+#+END_SRC
+
+** Problems This Causes
+1. Users don't know what features do
+2. Breaking changes happen silently
+3. Documentation separate from definition
+4. No deprecation mechanism
+5. IDE can't provide help
+
+* Proposed Solution
+
+** Enhanced Feature Syntax
+#+BEGIN_SRC toml
+[features]
+default = ["std"]
+
+[features.std]
+description = "Enable standard library support"
+enables = []
+stability = "stable"
+since = "1.0.0"
+
+[features.async]
+description = "Async runtime support using Tokio"
+enables = ["tokio/full", "futures"]
+stability = "stable"
+since = "2.0.0"
+requires-rust = "1.75.0"
+
+[features.experimental]
+description = "Experimental features - may break"
+enables = ["unstable-feature"]
+stability = "experimental"
+deprecated = "3.0.0"
+deprecated-message = "Use 'advanced' feature instead"
+#+END_SRC
+
+** Metadata Fields
+| Field | Purpose | Required |
+|-------+---------+----------|
+| description | Human-readable explanation | Yes |
+| stability | stable/unstable/experimental/deprecated | Yes |
+| enables | Feature dependencies | No |
+| since | Version when added | No |
+| requires-rust | Minimum Rust version | No |
+| deprecated | Version when deprecated | No |
+| deprecated-message | Migration guidance | No |
+
+* Use Cases
+
+** Documentation Generation
+#+BEGIN_SRC rust
+// Auto-generated from Cargo.toml
+/// ## Available Features
+/// 
+/// - `std` (stable): Enable standard library support
+/// - `async` (stable): Async runtime support using Tokio
+/// - `experimental` (deprecated): Use 'advanced' feature instead
+#+END_SRC
+
+** Cargo Commands
+#+BEGIN_SRC bash
+# Show feature documentation
+$ cargo features
+Available features for my-crate v1.0.0:
+  std (stable) - Enable standard library support
+  async (stable) - Async runtime support using Tokio
+  experimental (deprecated) - Experimental features - may break
+    ⚠️  Deprecated in 3.0.0: Use 'advanced' feature instead
+
+# Check feature stability
+$ cargo features --check-stability
+Warning: Using experimental feature 'experimental'
+#+END_SRC
+
+** IDE Integration
+- Autocomplete with descriptions
+- Warnings for unstable features
+- Migration suggestions for deprecated
+- Feature dependency graph
+
+* Implementation Strategy
+
+** Phase 1: Backward Compatible
+#+BEGIN_SRC toml
+# Both syntaxes work
+[features]
+simple = []  # Old style still works
+
+[features.complex]
+description = "New style with metadata"
+enables = []
+#+END_SRC
+
+** Phase 2: Tooling Support
+- cargo features command
+- Documentation generation
+- cargo new templates
+- Clippy lints
+
+** Phase 3: Ecosystem Adoption
+- crates.io display
+- docs.rs integration
+- IDE plugins
+- CI/CD tools
+
+* Benefits
+
+** For Library Authors
+- Self-documenting features
+- Clear stability guarantees
+- Deprecation path
+- Better communication
+
+** For Library Users
+- Understand features without reading docs
+- Stability confidence
+- Migration guidance
+- Better discovery
+
+** For Tools
+- Rich metadata for analysis
+- Automated documentation
+- Dependency resolution
+- Migration automation
+
+* Discussion Topics
+
+** Design Questions
+- What metadata is essential vs nice-to-have?
+- How to handle breaking changes?
+- Should we support feature categories?
+- Versioning of features themselves?
+
+** Migration Path
+- How to encourage adoption?
+- Tooling to convert existing features?
+- Timeline for ecosystem adoption?
+
+* Related Work
+
+** Other Package Managers
+| Tool | Feature Docs | Stability | Deprecation |
+|------+--------------+-----------+-------------|
+| npm | README only | No | Package-level |
+| pip | extras_require | No | No |
+| Maven | Yes | Yes | Yes |
+| NuGet | Yes | Yes | Yes |
+
+** Rust Ecosystem
+- RFC 3416 (feature metadata)
+- cargo-feature-analyst
+- cargo-info
+
+* Action Items
+
+** During Session
+- [ ] Finalize metadata fields
+- [ ] Discuss syntax options
+- [ ] Plan migration strategy
+- [ ] Identify tooling needs
+
+** Post-Session
+- [ ] Write RFC
+- [ ] Implement prototype
+- [ ] Create migration tool
+- [ ] Update documentation
+
+* Example: Real Crate
+
+** Before
+#+BEGIN_SRC toml
+[features]
+default = ["std", "derive"]
+std = []
+alloc = []
+derive = ["serde_derive"]
+unstable = []
+#+END_SRC
+
+** After
+#+BEGIN_SRC toml
+[features]
+default = ["std", "derive"]
+
+[features.std]
+description = "Enable std library features (HashMap, Vec, etc)"
+stability = "stable"
+since = "0.1.0"
+
+[features.alloc]
+description = "Enable alloc for no_std environments"
+stability = "stable"
+since = "0.5.0"
+enables = []
+
+[features.derive]
+description = "Enable derive macros for automatic trait implementation"
+stability = "stable"
+enables = ["serde_derive"]
+since = "0.1.0"
+
+[features.unstable]
+description = "Enable unstable features (may break between minor versions)"
+stability = "experimental"
+since = "1.0.0"
+#+END_SRC
+
+* Expected Outcomes
+
+** Short-term
+- RFC acceptance
+- Prototype in cargo
+- Community feedback
+
+** Long-term
+- Standard practice
+- Tool ecosystem
+- Better crate discovery
+- Reduced confusion
+
+---
+
+*Priority:* HIGH - Improves entire ecosystem UX

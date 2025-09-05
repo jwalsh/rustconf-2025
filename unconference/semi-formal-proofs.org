@@ -1,0 +1,225 @@
+#+TITLE: Semi-formal Proofs in Rust
+#+FACILITATOR: Aleks Rudzitis
+#+EMAIL: aleks@rudzitis.org
+#+TAGS: verification formal-methods safety testing
+#+OPTIONS: toc:2 num:t
+
+* Session Overview
+
+Let's talk about semi-formal proofs - what folks are doing and what works in practice. This bridges the gap between traditional testing and full formal verification, providing practical verification techniques for real-world Rust code.
+
+** Connection to Conference
+- Builds on AWS Kani verification talk
+- Relates to safety-critical discussions
+- Practical middle ground approach
+
+* What Are Semi-formal Proofs?
+
+** Spectrum of Verification
+| Approach | Rigor | Effort | Coverage |
+|----------+-------+--------+----------|
+| Unit tests | Low | Low | Specific cases |
+| Property tests | Medium | Medium | Random cases |
+| Semi-formal | High | Medium | Invariants |
+| Formal proofs | Highest | High | Mathematical |
+
+** Semi-formal Techniques
+1. Property-based testing with invariants
+2. Model checking subsets
+3. Bounded verification
+4. Contract-based design
+5. Refinement types
+
+* Practical Tools in Rust
+
+** Property-Based Testing
+#+BEGIN_SRC rust
+use proptest::prelude::*;
+
+// Define invariants
+fn sorted_invariant<T: Ord>(vec: &[T]) -> bool {
+    vec.windows(2).all(|w| w[0] <= w[1])
+}
+
+proptest! {
+    #[test]
+    fn test_sort_maintains_length(mut vec: Vec<i32>) {
+        let original_len = vec.len();
+        vec.sort();
+        prop_assert_eq!(vec.len(), original_len);
+        prop_assert!(sorted_invariant(&vec));
+    }
+}
+#+END_SRC
+
+** Kani for Bounded Verification
+#+BEGIN_SRC rust
+#[kani::proof]
+fn verify_safe_divide() {
+    let x: i32 = kani::any();
+    let y: i32 = kani::any();
+    kani::assume(y != 0);
+    
+    let result = x / y;
+    // Verify no panic occurred
+    assert!(result <= i32::MAX && result >= i32::MIN);
+}
+#+END_SRC
+
+** Design by Contract
+#+BEGIN_SRC rust
+use contracts::*;
+
+#[requires(index < self.len())]
+#[ensures(ret.is_some() == (index < old(self.len())))]
+fn get(&self, index: usize) -> Option<&T> {
+    if index < self.len() {
+        Some(&self.data[index])
+    } else {
+        None
+    }
+}
+#+END_SRC
+
+* Verification Strategies
+
+** Incremental Verification
+1. Start with critical functions
+2. Add invariants progressively
+3. Verify bounded scenarios
+4. Expand coverage over time
+
+** Compositional Proofs
+#+BEGIN_SRC rust
+// Verify components separately
+mod verified_stack {
+    #[invariant(self.len <= self.capacity)]
+    struct Stack<T> {
+        data: Vec<T>,
+        capacity: usize,
+    }
+    
+    #[ensures(self.len == old(self.len) + 1)]
+    fn push(&mut self, item: T) {
+        // Implementation
+    }
+}
+#+END_SRC
+
+* Real-World Applications
+
+** Cryptographic Primitives
+#+BEGIN_SRC rust
+// Verify constant-time operations
+#[kani::proof]
+fn verify_constant_time_compare() {
+    let a: [u8; 32] = kani::any();
+    let b: [u8; 32] = kani::any();
+    
+    // Verify execution time independent of values
+    let start = kani::symbolic_time();
+    constant_time_compare(&a, &b);
+    let end = kani::symbolic_time();
+    
+    // Time should not depend on input values
+    kani::assert_constant_time(end - start);
+}
+#+END_SRC
+
+** Data Structure Invariants
+#+BEGIN_SRC rust
+// B-tree invariants
+trait BTreeInvariant {
+    fn check_ordering(&self) -> bool;
+    fn check_balance(&self) -> bool;
+    fn check_occupancy(&self) -> bool;
+}
+
+#[cfg(test)]
+mod tests {
+    proptest! {
+        #[test]
+        fn maintain_invariants_on_insert(
+            tree: BTree<i32>,
+            key: i32
+        ) {
+            let mut tree = tree;
+            tree.insert(key);
+            prop_assert!(tree.check_ordering());
+            prop_assert!(tree.check_balance());
+            prop_assert!(tree.check_occupancy());
+        }
+    }
+}
+#+END_SRC
+
+* Discussion Topics
+
+** Current Practices
+- What tools are people using?
+- Success stories?
+- Common pitfalls?
+- Integration with CI/CD?
+
+** Gaps and Needs
+- Better IDE integration
+- Faster verification
+- More approachable tools
+- Standard patterns
+
+* Tool Comparison
+
+** Available Tools
+| Tool | Type | Strengths | Limitations |
+|------+------+-----------+-------------|
+| proptest | Property testing | Easy to use | Random, not exhaustive |
+| quickcheck | Property testing | Simple API | Less features |
+| Kani | Model checking | Exhaustive for bounds | Slow for large bounds |
+| Prusti | Verification | Strong guarantees | Steep learning curve |
+| Creusot | Verification | Generates Why3 | External toolchain |
+
+* Action Items
+
+** During Session
+- [ ] Share verification experiences
+- [ ] Compare tool effectiveness
+- [ ] Identify common patterns
+- [ ] Discuss teaching strategies
+
+** Post-Session
+- [ ] Create verification cookbook
+- [ ] Contribute to tool documentation
+- [ ] Set up CI integration examples
+- [ ] Form study group
+
+* Resources
+
+** Essential Reading
+- "Lightweight Formal Methods"
+- "Property-Based Testing in Rust"
+- Kani documentation
+- RustBelt papers
+
+** Example Projects
+#+BEGIN_SRC bash
+# Clone example repositories
+git clone https://github.com/model-checking/kani
+git clone https://github.com/viperproject/prusti-dev
+git clone https://github.com/xldenis/creusot
+#+END_SRC
+
+* Expected Outcomes
+
+** Short-term
+- Tool selection criteria
+- Verification patterns library
+- CI/CD integration guides
+
+** Long-term
+- Improved tool ecosystem
+- Standard verification practices
+- Wider adoption in industry
+
+---
+
+*Priority:* HIGH - Bridge between testing and formal verification

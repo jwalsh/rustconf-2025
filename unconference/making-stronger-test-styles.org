@@ -1,0 +1,279 @@
+#+TITLE: Making Stronger Rust Test Styles Easy
+#+FACILITATOR: Zachary Pierce
+#+EMAIL: zachary.pierce@gmail.com
+#+TAGS: testing property-testing fuzzing mutation-testing
+#+OPTIONS: toc:2 num:t
+
+* Session Overview
+
+How can we make advanced testing modes like property-based testing, mutation testing, fuzzing, semi-formal proofs, etc. accessible and widespread in Rust? Focus on lowering barriers to adoption and making these techniques part of standard practice.
+
+** The Challenge
+- Advanced testing has high learning curve
+- Tools are fragmented
+- Integration is complex
+- Documentation scattered
+
+* Current State of Advanced Testing
+
+** Testing Pyramid Evolution
+#+BEGIN_SRC
+        /\         Traditional           Advanced
+       /  \        
+      / E2E \      E2E Tests      →    Formal Verification
+     /______\      
+    /        \     Integration    →    Property Tests
+   / Integration\    
+  /______________\  Unit Tests    →    Mutation + Fuzz
+ /                \
+/   Unit Tests     \
+#+END_SRC
+
+** Adoption Barriers
+1. *Knowledge Gap*
+   - Unfamiliar concepts
+   - Mathematical terminology
+   - Complex APIs
+
+2. *Tooling Friction*
+   - Multiple tools needed
+   - Configuration complexity
+   - CI/CD integration
+
+3. *Time Investment*
+   - Learning curve
+   - Test writing time
+   - Maintenance burden
+
+* Making Property Testing Accessible
+
+** Current State
+#+BEGIN_SRC rust
+// Too complex for beginners
+use proptest::prelude::*;
+
+proptest! {
+    #[test]
+    fn test_complex(
+        x in 0..100i32,
+        y in prop::array::uniform32(0..100u8),
+        z in "[a-z]+"
+    ) {
+        // Test logic
+    }
+}
+#+END_SRC
+
+** Proposed Simplification
+#+BEGIN_SRC rust
+// Attribute macro approach
+#[property_test]
+fn test_never_panics(x: i32, y: u32) {
+    let result = my_function(x, y);
+    assert!(result.is_ok());
+}
+
+// Derives for custom types
+#[derive(Arbitrary, Debug)]
+struct MyStruct {
+    #[arbitrary(range = 0..100)]
+    field1: i32,
+    #[arbitrary(regex = "[a-z]+")]
+    field2: String,
+}
+#+END_SRC
+
+* Making Fuzzing Mainstream
+
+** Current Complexity
+#+BEGIN_SRC bash
+# Too many steps
+cargo install cargo-fuzz
+cargo fuzz init
+cargo fuzz add my_target
+# Edit fuzz/fuzz_targets/my_target.rs
+cargo fuzz run my_target
+#+END_SRC
+
+** Proposed Integration
+#+BEGIN_SRC rust
+// In-test fuzzing
+#[test]
+#[fuzz(iterations = 10000)]
+fn test_parse_never_crashes(input: &[u8]) {
+    let _ = parse_message(input);
+    // Automatically catches panics, timeouts
+}
+
+// Cargo integration
+// cargo test --fuzz
+#+END_SRC
+
+* Making Mutation Testing Practical
+
+** Current Tools
+- cargo-mutants
+- mutagen (discontinued)
+
+** Ideal Experience
+#+BEGIN_SRC toml
+# Cargo.toml
+[dev-dependencies]
+mutation-testing = "1.0"
+
+[package.metadata.mutation]
+minimum_score = 0.80
+ignore_functions = ["log_*", "debug_*"]
+#+END_SRC
+
+#+BEGIN_SRC rust
+// Automatic mutation hints
+#[mutation_test(operators = [arithmetic, boolean])]
+fn calculate_discount(price: f64, discount: f64) -> f64 {
+    price * (1.0 - discount)
+}
+#+END_SRC
+
+* Unified Testing Framework
+
+** Proposed Architecture
+#+BEGIN_SRC rust
+// Single test annotation with modes
+#[rust_test(
+    modes = [unit, property, fuzz, mutation],
+    timeout = "5s",
+    iterations = 1000
+)]
+fn test_comprehensive(
+    // Automatically generates arbitrary values
+    input: MyType,
+    state: TestState,
+) {
+    // Single test implementation
+    let result = process(input, state);
+    
+    // Assertions checked by all modes
+    assert_invariant!(result.is_valid());
+    assert_no_panic!();
+    assert_deterministic!();
+}
+#+END_SRC
+
+** IDE Integration
+- Visual indicators for test coverage
+- Inline mutation results
+- Property test counterexamples
+- Fuzzing crash reproduction
+
+* Educational Approach
+
+** Progressive Learning Path
+1. *Week 1:* Standard unit tests
+2. *Week 2:* Simple property tests
+3. *Week 3:* Basic fuzzing
+4. *Week 4:* Mutation testing
+5. *Week 5:* Combined approaches
+
+** Interactive Tutorials
+#+BEGIN_SRC rust
+// Rustlings-style exercises
+// exercises/advanced_testing/property1.rs
+
+// TODO: Fix this property test
+#[property_test]
+fn test_reverse_twice_is_identity(s: String) {
+    let reversed_twice = reverse(&reverse(&s));
+    // What should we assert here?
+    assert_eq!(???, ???);
+}
+#+END_SRC
+
+* CI/CD Integration
+
+** GitHub Actions Template
+#+BEGIN_SRC yaml
+name: Advanced Testing
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: rust-testing/action@v1
+        with:
+          modes: all
+          property-iterations: 1000
+          fuzz-duration: 60s
+          mutation-threshold: 0.80
+          
+      - name: Upload results
+        uses: rust-testing/upload@v1
+        with:
+          badge: true
+          comment-pr: true
+#+END_SRC
+
+* Discussion Topics
+
+** Key Questions
+- What's the MVP for each testing type?
+- How to teach concepts progressively?
+- Standard terminology and patterns?
+- Metrics and reporting?
+
+** Success Criteria
+- Adoption rate increase
+- Bug detection improvement
+- Developer satisfaction
+- Time to first advanced test
+
+* Action Items
+
+** During Session
+- [ ] Identify biggest pain points
+- [ ] Prioritize testing modes
+- [ ] Design unified API
+- [ ] Plan education materials
+
+** Post-Session
+- [ ] Create RFC for test framework
+- [ ] Build prototype tool
+- [ ] Write tutorial series
+- [ ] Set up example projects
+
+* Expected Outcomes
+
+** 3 Months
+- Unified testing RFC
+- Prototype implementation
+- Tutorial materials
+
+** 6 Months
+- Beta release
+- Community feedback
+- IDE plugins
+
+** 1 Year
+- Stable release
+- Wide adoption
+- Standard practice
+
+* Resources
+
+** Current Tools
+- proptest / quickcheck
+- cargo-fuzz / afl.rs
+- cargo-mutants
+- kani / prusti
+
+** Inspiration
+- Hypothesis (Python)
+- QuickCheck (Haskell)
+- JUnit 5 (Java)
+- Jest (JavaScript)
+
+---
+
+*Priority:* CRITICAL - Fundamental to software quality
