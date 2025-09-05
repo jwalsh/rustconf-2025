@@ -1,0 +1,765 @@
+#+TITLE: Mathematical Properties for Property-Based Testing
+#+SUBTITLE: A Complete Catalog of Algebraic Properties and Laws
+#+AUTHOR: RustConf 2025 UnConference
+#+TAGS: property-testing algebra functional-programming laws invariants
+#+OPTIONS: toc:3 num:t
+
+* Core Algebraic Properties
+
+These fundamental properties form the basis of property-based testing and functional programming laws.
+
+** Identity (Unit)
+An element that leaves other elements unchanged when combined.
+
+#+BEGIN_SRC rust
+// Left Identity: id ⊕ a = a
+// Right Identity: a ⊕ id = a
+
+#[quickcheck]
+fn prop_addition_identity(a: i32) -> bool {
+    0 + a == a && a + 0 == a  // 0 is identity for addition
+}
+
+#[quickcheck]
+fn prop_multiplication_identity(a: i32) -> bool {
+    1 * a == a && a * 1 == a  // 1 is identity for multiplication
+}
+
+#[quickcheck]
+fn prop_string_concat_identity(s: String) -> bool {
+    format!("{}{}", "", &s) == s &&  // "" is left identity
+    format!("{}{}", &s, "") == s     // "" is right identity
+}
+
+#[quickcheck]
+fn prop_option_or_identity(opt: Option<i32>) -> bool {
+    opt.or(None) == opt &&  // None is identity for or
+    None.or(opt) == opt
+}
+
+#[quickcheck]
+fn prop_vec_append_identity(v: Vec<i32>) -> bool {
+    let empty: Vec<i32> = vec![];
+    [&empty[..], &v[..]].concat() == v &&  // [] is left identity
+    [&v[..], &empty[..]].concat() == v     // [] is right identity
+}
+#+END_SRC
+
+** Associativity
+Order of operations doesn't matter when combining multiple elements.
+
+#+BEGIN_SRC rust
+// (a ⊕ b) ⊕ c = a ⊕ (b ⊕ c)
+
+#[quickcheck]
+fn prop_addition_associative(a: i32, b: i32, c: i32) -> bool {
+    (a + b) + c == a + (b + c)
+}
+
+#[quickcheck]
+fn prop_string_concat_associative(s1: String, s2: String, s3: String) -> bool {
+    format!("{}{}", format!("{}{}", s1, s2), s3) == 
+    format!("{}{}", s1, format!("{}{}", s2, s3))
+}
+
+#[quickcheck]
+fn prop_option_or_associative(a: Option<i32>, b: Option<i32>, c: Option<i32>) -> bool {
+    (a.or(b)).or(c) == a.or(b.or(c))
+}
+
+#[quickcheck]
+fn prop_result_and_then_associative(
+    x: Result<i32, String>
+) -> bool {
+    let f = |n: i32| Ok::<_, String>(n * 2);
+    let g = |n: i32| Ok::<_, String>(n + 1);
+    let h = |n: i32| Ok::<_, String>(n * n);
+    
+    x.and_then(f).and_then(g).and_then(h) ==
+    x.and_then(|n| f(n).and_then(g).and_then(h))
+}
+
+#[quickcheck]
+fn prop_max_associative(a: i32, b: i32, c: i32) -> bool {
+    std::cmp::max(std::cmp::max(a, b), c) == 
+    std::cmp::max(a, std::cmp::max(b, c))
+}
+#+END_SRC
+
+** Commutativity
+Order of operands doesn't matter.
+
+#+BEGIN_SRC rust
+// a ⊕ b = b ⊕ a
+
+#[quickcheck]
+fn prop_addition_commutative(a: i32, b: i32) -> bool {
+    a + b == b + a
+}
+
+#[quickcheck]
+fn prop_multiplication_commutative(a: i32, b: i32) -> bool {
+    a * b == b * a
+}
+
+#[quickcheck]
+fn prop_max_commutative(a: i32, b: i32) -> bool {
+    std::cmp::max(a, b) == std::cmp::max(b, a)
+}
+
+#[quickcheck]
+fn prop_boolean_and_commutative(a: bool, b: bool) -> bool {
+    (a && b) == (b && a)
+}
+
+#[quickcheck]
+fn prop_set_union_commutative(
+    a: HashSet<i32>, 
+    b: HashSet<i32>
+) -> bool {
+    &a | &b == &b | &a
+}
+
+// Counter-example: String concatenation is NOT commutative
+#[quickcheck]
+fn string_concat_not_commutative() -> bool {
+    let a = "hello";
+    let b = "world";
+    format!("{}{}", a, b) != format!("{}{}", b, a)
+}
+#+END_SRC
+
+** Idempotence
+Applying an operation multiple times has the same effect as applying it once.
+
+#+BEGIN_SRC rust
+// f(f(x)) = f(x)
+
+#[quickcheck]
+fn prop_abs_idempotent(x: i32) -> bool {
+    let once = x.abs();
+    let twice = once.abs();
+    once == twice
+}
+
+#[quickcheck]
+fn prop_sort_idempotent(mut v: Vec<i32>) -> bool {
+    v.sort();
+    let once = v.clone();
+    v.sort();
+    v == once
+}
+
+#[quickcheck]
+fn prop_set_insert_idempotent(mut set: HashSet<i32>, item: i32) -> bool {
+    set.insert(item);
+    let once = set.clone();
+    set.insert(item);
+    set == once
+}
+
+#[quickcheck]
+fn prop_max_with_self_idempotent(x: i32) -> bool {
+    std::cmp::max(x, x) == x
+}
+
+#[quickcheck]
+fn prop_option_or_self_idempotent(opt: Option<i32>) -> bool {
+    opt.or(opt) == opt
+}
+
+#[quickcheck]
+fn prop_round_idempotent(x: f64) -> bool {
+    x.round().round() == x.round()
+}
+#+END_SRC
+
+** Distributivity
+One operation distributes over another.
+
+#+BEGIN_SRC rust
+// a ⊗ (b ⊕ c) = (a ⊗ b) ⊕ (a ⊗ c)
+
+#[quickcheck]
+fn prop_multiplication_distributes_over_addition(a: i32, b: i32, c: i32) -> bool {
+    a * (b + c) == (a * b) + (a * c)
+}
+
+#[quickcheck]
+fn prop_and_distributes_over_or(a: bool, b: bool, c: bool) -> bool {
+    a && (b || c) == (a && b) || (a && c)
+}
+
+#[quickcheck]
+fn prop_or_distributes_over_and(a: bool, b: bool, c: bool) -> bool {
+    a || (b && c) == (a || b) && (a || c)
+}
+
+#[quickcheck]
+fn prop_set_intersection_distributes_over_union(
+    a: HashSet<i32>,
+    b: HashSet<i32>,
+    c: HashSet<i32>
+) -> bool {
+    &a & &(&b | &c) == &(&a & &b) | &(&a & &c)
+}
+
+#[quickcheck]
+fn prop_max_distributes_over_addition(a: u32, b: u32, c: u32) -> bool {
+    // For non-negative numbers
+    std::cmp::max(a + c, b + c) == std::cmp::max(a, b) + c
+}
+#+END_SRC
+
+** Inverse Elements
+Elements that combine to produce the identity.
+
+#+BEGIN_SRC rust
+// a ⊕ inverse(a) = identity
+
+#[quickcheck]
+fn prop_addition_inverse(a: i32) -> bool {
+    a + (-a) == 0  // -a is inverse of a for addition
+}
+
+#[quickcheck]
+fn prop_xor_self_inverse(a: u32) -> bool {
+    a ^ a == 0  // XOR with self gives identity (0)
+}
+
+#[quickcheck]
+fn prop_not_not_inverse(a: bool) -> bool {
+    !!a == a  // Double negation is identity
+}
+
+// For non-zero numbers (avoiding division by zero)
+#[quickcheck]
+fn prop_multiplication_inverse(a: f64) -> TestResult {
+    if a == 0.0 {
+        return TestResult::discard();
+    }
+    TestResult::from_bool((a * (1.0 / a) - 1.0).abs() < 1e-10)
+}
+#+END_SRC
+
+** Absorption
+When one operation "absorbs" another.
+
+#+BEGIN_SRC rust
+// a ⊕ (a ⊗ b) = a
+
+#[quickcheck]
+fn prop_boolean_absorption(a: bool, b: bool) -> bool {
+    (a || (a && b)) == a &&  // OR absorbs AND
+    (a && (a || b)) == a     // AND absorbs OR
+}
+
+#[quickcheck]
+fn prop_set_absorption(a: HashSet<i32>, b: HashSet<i32>) -> bool {
+    &a | &(&a & &b) == a &&  // Union absorbs intersection
+    &a & &(&a | &b) == a     // Intersection absorbs union
+}
+
+#[quickcheck]
+fn prop_max_min_absorption(a: i32, b: i32) -> bool {
+    std::cmp::max(a, std::cmp::min(a, b)) == a &&
+    std::cmp::min(a, std::cmp::max(a, b)) == a
+}
+#+END_SRC
+
+* Functor Laws
+
+Properties that functors (mappable containers) must satisfy.
+
+#+BEGIN_SRC rust
+// Identity Law: fmap id = id
+#[quickcheck]
+fn prop_option_functor_identity(opt: Option<i32>) -> bool {
+    opt.map(|x| x) == opt
+}
+
+#[quickcheck]
+fn prop_result_functor_identity(res: Result<i32, String>) -> bool {
+    res.map(|x| x) == res
+}
+
+#[quickcheck]
+fn prop_vec_functor_identity(vec: Vec<i32>) -> bool {
+    vec.iter().map(|x| x).collect::<Vec<_>>() == 
+    vec.iter().collect::<Vec<_>>()
+}
+
+// Composition Law: fmap (f . g) = fmap f . fmap g
+#[quickcheck]
+fn prop_option_functor_composition(opt: Option<i32>) -> bool {
+    let f = |x: i32| x * 2;
+    let g = |x: i32| x + 1;
+    
+    opt.map(|x| f(g(x))) == opt.map(g).map(f)
+}
+
+#[quickcheck]
+fn prop_result_functor_composition(res: Result<i32, String>) -> bool {
+    let f = |x: i32| x * 2;
+    let g = |x: i32| x + 1;
+    
+    res.map(|x| f(g(x))) == res.map(g).map(f)
+}
+#+END_SRC
+
+* Monad Laws
+
+Properties for monadic types (flatMap/bind capable).
+
+#+BEGIN_SRC rust
+// Left Identity: return a >>= f = f a
+#[quickcheck]
+fn prop_option_monad_left_identity(a: i32) -> bool {
+    let f = |x: i32| if x > 0 { Some(x * 2) } else { None };
+    
+    Some(a).and_then(f) == f(a)
+}
+
+// Right Identity: m >>= return = m
+#[quickcheck]
+fn prop_option_monad_right_identity(m: Option<i32>) -> bool {
+    m.and_then(Some) == m
+}
+
+// Associativity: (m >>= f) >>= g = m >>= (\x -> f x >>= g)
+#[quickcheck]
+fn prop_option_monad_associativity(m: Option<i32>) -> bool {
+    let f = |x: i32| if x > 0 { Some(x * 2) } else { None };
+    let g = |x: i32| if x < 100 { Some(x + 1) } else { None };
+    
+    m.and_then(f).and_then(g) == 
+    m.and_then(|x| f(x).and_then(g))
+}
+
+// Result monad laws
+#[quickcheck]
+fn prop_result_monad_left_identity(a: i32) -> bool {
+    let f = |x: i32| -> Result<i32, String> {
+        if x > 0 { Ok(x * 2) } else { Err("negative".to_string()) }
+    };
+    
+    Ok::<_, String>(a).and_then(f) == f(a)
+}
+#+END_SRC
+
+* Monoid Laws
+
+Properties for types that can be combined with an identity element.
+
+#+BEGIN_SRC rust
+trait Monoid {
+    fn mempty() -> Self;
+    fn mappend(&self, other: &Self) -> Self;
+}
+
+// String monoid
+impl Monoid for String {
+    fn mempty() -> Self { String::new() }
+    fn mappend(&self, other: &Self) -> Self {
+        format!("{}{}", self, other)
+    }
+}
+
+#[quickcheck]
+fn prop_string_monoid_identity(s: String) -> bool {
+    s.mappend(&String::mempty()) == s &&
+    String::mempty().mappend(&s) == s
+}
+
+#[quickcheck]
+fn prop_string_monoid_associativity(a: String, b: String, c: String) -> bool {
+    a.mappend(&b).mappend(&c) == a.mappend(&b.mappend(&c))
+}
+
+// Vec monoid
+impl<T: Clone> Monoid for Vec<T> {
+    fn mempty() -> Self { Vec::new() }
+    fn mappend(&self, other: &Self) -> Self {
+        [&self[..], &other[..]].concat()
+    }
+}
+
+#[quickcheck]
+fn prop_vec_monoid_laws(a: Vec<i32>, b: Vec<i32>, c: Vec<i32>) -> bool {
+    // Identity
+    let identity_left = Vec::mempty().mappend(&a) == a;
+    let identity_right = a.mappend(&Vec::mempty()) == a;
+    
+    // Associativity
+    let associative = a.mappend(&b).mappend(&c) == 
+                     a.mappend(&b.mappend(&c));
+    
+    identity_left && identity_right && associative
+}
+#+END_SRC
+
+* Order Properties
+
+Properties related to ordering and comparison.
+
+#+BEGIN_SRC rust
+// Reflexivity: a ≤ a
+#[quickcheck]
+fn prop_ordering_reflexive(a: i32) -> bool {
+    a <= a
+}
+
+// Antisymmetry: if a ≤ b and b ≤ a then a = b
+#[quickcheck]
+fn prop_ordering_antisymmetric(a: i32, b: i32) -> bool {
+    if a <= b && b <= a {
+        a == b
+    } else {
+        true
+    }
+}
+
+// Transitivity: if a ≤ b and b ≤ c then a ≤ c
+#[quickcheck]
+fn prop_ordering_transitive(a: i32, b: i32, c: i32) -> bool {
+    if a <= b && b <= c {
+        a <= c
+    } else {
+        true
+    }
+}
+
+// Total order: either a ≤ b or b ≤ a
+#[quickcheck]
+fn prop_total_order(a: i32, b: i32) -> bool {
+    a <= b || b <= a
+}
+
+// Consistency with equality
+#[quickcheck]
+fn prop_eq_consistent_with_ord(a: i32, b: i32) -> bool {
+    (a == b) == (a.cmp(&b) == std::cmp::Ordering::Equal)
+}
+#+END_SRC
+
+* Equivalence Properties
+
+Properties for equivalence relations.
+
+#+BEGIN_SRC rust
+// Reflexivity: a ~ a
+#[quickcheck]
+fn prop_eq_reflexive<T: Eq>(a: T) -> bool {
+    a == a
+}
+
+// Symmetry: if a ~ b then b ~ a
+#[quickcheck]
+fn prop_eq_symmetric(a: i32, b: i32) -> bool {
+    (a == b) == (b == a)
+}
+
+// Transitivity: if a ~ b and b ~ c then a ~ c
+#[quickcheck]
+fn prop_eq_transitive(a: i32, b: i32, c: i32) -> bool {
+    if a == b && b == c {
+        a == c
+    } else {
+        true
+    }
+}
+
+// Hash consistency with equality
+#[quickcheck]
+fn prop_hash_consistent_with_eq(a: String, b: String) -> bool {
+    use std::hash::{Hash, Hasher};
+    use std::collections::hash_map::DefaultHasher;
+    
+    if a == b {
+        let mut hasher_a = DefaultHasher::new();
+        a.hash(&mut hasher_a);
+        let hash_a = hasher_a.finish();
+        
+        let mut hasher_b = DefaultHasher::new();
+        b.hash(&mut hasher_b);
+        let hash_b = hasher_b.finish();
+        
+        hash_a == hash_b
+    } else {
+        true  // Different values may have same hash (collision)
+    }
+}
+#+END_SRC
+
+* Cancellation Properties
+
+Properties about canceling operations.
+
+#+BEGIN_SRC rust
+// Left cancellation: if a ⊕ b = a ⊕ c then b = c
+#[quickcheck]
+fn prop_addition_left_cancellation(a: i32, b: i32, c: i32) -> bool {
+    if a + b == a + c {
+        b == c
+    } else {
+        true
+    }
+}
+
+// Right cancellation: if b ⊕ a = c ⊕ a then b = c
+#[quickcheck]
+fn prop_addition_right_cancellation(a: i32, b: i32, c: i32) -> bool {
+    if b + a == c + a {
+        b == c
+    } else {
+        true
+    }
+}
+
+// XOR cancellation
+#[quickcheck]
+fn prop_xor_self_cancellation(a: u32, b: u32) -> bool {
+    (a ^ b) ^ b == a  // b cancels itself
+}
+#+END_SRC
+
+* Zero and Annihilator Properties
+
+Properties about absorbing elements.
+
+#+BEGIN_SRC rust
+// Zero/Annihilator: a ⊗ 0 = 0
+#[quickcheck]
+fn prop_multiplication_zero(a: i32) -> bool {
+    a * 0 == 0 && 0 * a == 0
+}
+
+#[quickcheck]
+fn prop_and_false_annihilator(a: bool) -> bool {
+    (a && false) == false && (false && a) == false
+}
+
+#[quickcheck]
+fn prop_set_intersection_empty_annihilator(s: HashSet<i32>) -> bool {
+    let empty: HashSet<i32> = HashSet::new();
+    &s & &empty == empty && &empty & &s == empty
+}
+
+// Dominance
+#[quickcheck]
+fn prop_or_true_dominance(a: bool) -> bool {
+    (a || true) == true && (true || a) == true
+}
+#+END_SRC
+
+* Closure Properties
+
+Properties about operations being closed over a set.
+
+#+BEGIN_SRC rust
+// Closure: operation on elements of a type returns same type
+#[quickcheck]
+fn prop_addition_closed_over_integers(a: i32, b: i32) -> bool {
+    let _result: i32 = a + b;  // Type system ensures closure
+    true
+}
+
+// Subclosure: positive integers closed under addition
+#[quickcheck]
+fn prop_positive_addition_closure(a: u32, b: u32) -> bool {
+    let result = a + b;
+    result >= a && result >= b  // No overflow = stayed positive
+}
+#+END_SRC
+
+* De Morgan's Laws
+
+Properties relating conjunction and disjunction through negation.
+
+#+BEGIN_SRC rust
+#[quickcheck]
+fn prop_de_morgan_and(a: bool, b: bool) -> bool {
+    !(a && b) == (!a || !b)
+}
+
+#[quickcheck]
+fn prop_de_morgan_or(a: bool, b: bool) -> bool {
+    !(a || b) == (!a && !b)
+}
+
+// For sets
+#[quickcheck]
+fn prop_de_morgan_sets(
+    universe: HashSet<i32>,
+    a: HashSet<i32>,
+    b: HashSet<i32>
+) -> bool {
+    let a = &a & &universe;  // Ensure subsets
+    let b = &b & &universe;
+    
+    let complement_a: HashSet<_> = universe.difference(&a).cloned().collect();
+    let complement_b: HashSet<_> = universe.difference(&b).cloned().collect();
+    
+    let left: HashSet<_> = universe.difference(&(&a | &b)).cloned().collect();
+    let right = &complement_a & &complement_b;
+    
+    left == right
+}
+#+END_SRC
+
+* Involution Properties
+
+Operations that are their own inverse.
+
+#+BEGIN_SRC rust
+// f(f(x)) = x
+
+#[quickcheck]
+fn prop_negation_involution(a: bool) -> bool {
+    !!a == a
+}
+
+#[quickcheck]
+fn prop_reverse_involution(v: Vec<i32>) -> bool {
+    let mut reversed = v.clone();
+    reversed.reverse();
+    reversed.reverse();
+    reversed == v
+}
+
+#[quickcheck]
+fn prop_complement_involution(n: i32) -> bool {
+    !(!n) == n  // Bitwise NOT is involution
+}
+#+END_SRC
+
+* Homomorphism Properties
+
+Structure-preserving mappings.
+
+#+BEGIN_SRC rust
+// f(a ⊕ b) = f(a) ⊗ f(b)
+
+#[quickcheck]
+fn prop_length_homomorphism(v1: Vec<i32>, v2: Vec<i32>) -> bool {
+    // length is a homomorphism from (Vec, concat) to (usize, +)
+    let concatenated = [&v1[..], &v2[..]].concat();
+    concatenated.len() == v1.len() + v2.len()
+}
+
+#[quickcheck]
+fn prop_abs_multiplication_homomorphism(a: i32, b: i32) -> bool {
+    // abs is almost a homomorphism for multiplication
+    (a * b).abs() == a.abs() * b.abs()
+}
+
+#[quickcheck]
+fn prop_logarithm_homomorphism(a: f64, b: f64) -> TestResult {
+    if a <= 0.0 || b <= 0.0 {
+        return TestResult::discard();
+    }
+    // log(a * b) = log(a) + log(b)
+    let left = (a * b).ln();
+    let right = a.ln() + b.ln();
+    TestResult::from_bool((left - right).abs() < 1e-10)
+}
+#+END_SRC
+
+* Useful Composite Properties
+
+Combinations of properties commonly used in testing.
+
+#+BEGIN_SRC rust
+// Round-trip property (bijection)
+#[quickcheck]
+fn prop_serialization_round_trip<T>(value: T) -> bool 
+where 
+    T: Serialize + DeserializeOwned + PartialEq 
+{
+    let serialized = serde_json::to_string(&value).unwrap();
+    let deserialized: T = serde_json::from_str(&serialized).unwrap();
+    deserialized == value
+}
+
+// Invariant preservation
+#[quickcheck]
+fn prop_invariant_preserved(
+    initial: SortedVec<i32>,
+    operations: Vec<Operation>
+) -> bool {
+    let mut vec = initial;
+    for op in operations {
+        vec.apply(op);
+        if !vec.is_sorted() {
+            return false;
+        }
+    }
+    true
+}
+
+// Monotonicity
+#[quickcheck]
+fn prop_function_monotonic(a: i32, b: i32) -> bool {
+    let f = |x: i32| x * 2 + 1;
+    if a <= b {
+        f(a) <= f(b)
+    } else {
+        true
+    }
+}
+
+// Determinism
+#[quickcheck]
+fn prop_function_deterministic(input: i32) -> bool {
+    let result1 = complex_function(input);
+    let result2 = complex_function(input);
+    result1 == result2
+}
+
+// Purity (no side effects)
+#[quickcheck]
+fn prop_function_pure(input: Vec<i32>) -> bool {
+    let original = input.clone();
+    let _result = pure_function(&input);
+    input == original  // Input unchanged
+}
+#+END_SRC
+
+* Property Testing Strategies by Domain
+
+** Collections
+- Length preservation
+- Element preservation (multiset equality)
+- Order preservation (for stable operations)
+- Subset relationships
+- Disjointness
+
+** Numerical Computations
+- Overflow/underflow behavior
+- Precision bounds
+- Monotonicity
+- Convergence
+- Conservation laws
+
+** Concurrent Operations
+- Linearizability
+- Serializability
+- Race freedom
+- Deadlock freedom
+- Progress guarantees
+
+** Parsers and Serializers
+- Round-trip properties
+- Injection (no information loss)
+- Error totality (all inputs handled)
+- Format compliance
+
+** State Machines
+- State invariants
+- Transition validity
+- Reachability
+- Terminal state properties
+
+---
+
+*Priority:* CRITICAL - These properties form the foundation of rigorous testing

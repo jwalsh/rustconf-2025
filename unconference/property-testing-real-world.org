@@ -1,0 +1,654 @@
+#+TITLE: Property-Based Testing in the Real World: Why It's Underused and How to Fix It
+#+SUBTITLE: Practical Property Testing for Web Applications and Production Systems
+#+AUTHOR: RustConf 2025 UnConference
+#+TAGS: property-testing real-world web-applications performance pragmatic
+#+OPTIONS: toc:3 num:t
+
+* Why People Don't Use Property-Based Testing
+
+** Common Misconceptions and Real Barriers
+
+*** "It Takes Too Long to Run"
+#+BEGIN_SRC rust
+// MISCONCEPTION: Property tests are always slow
+// REALITY: You can control the speed/thoroughness trade-off
+
+// Development: Fast feedback (100 cases, <1 second)
+#[cfg(not(ci))]
+#[quickcheck]
+fn prop_fast_dev(input: String) -> bool {
+    process(input).is_ok()
+}
+
+// CI: Thorough testing (10,000 cases)
+#[cfg(ci)]
+#[quickcheck(tests = 10000)]
+fn prop_thorough_ci(input: String) -> bool {
+    process(input).is_ok()
+}
+
+// Nightly: Exhaustive testing (1,000,000 cases)
+#[cfg(nightly_fuzzing)]
+#[quickcheck(tests = 1000000)]
+fn prop_exhaustive_nightly(input: String) -> bool {
+    process(input).is_ok()
+}
+#+END_SRC
+
+*** "Hard to Write Properties"
+#+BEGIN_SRC rust
+// MISCONCEPTION: You need to be a mathematician
+// REALITY: Start with simple, obvious properties
+
+// Don't need to know category theory for this:
+#[quickcheck]
+fn prop_api_never_panics(request: ApiRequest) -> bool {
+    let _ = handle_request(request);
+    true  // If we got here, it didn't panic
+}
+
+// Or this:
+#[quickcheck]
+fn prop_saved_item_can_be_retrieved(item: Item) -> bool {
+    let id = database.save(item.clone());
+    database.get(id) == Some(item)
+}
+#+END_SRC
+
+*** "Not Useful for Web Applications"
+#+BEGIN_SRC rust
+// MISCONCEPTION: Property testing is only for algorithms
+// REALITY: Perfect for web app testing
+
+// API endpoint testing
+#[quickcheck]
+fn prop_rest_api_consistency(resource: Resource) -> bool {
+    let response = client.post("/api/resources", &resource);
+    assert_eq!(response.status(), 201);
+    
+    let location = response.header("Location").unwrap();
+    let get_response = client.get(location);
+    assert_eq!(get_response.status(), 200);
+    
+    let retrieved: Resource = get_response.json();
+    retrieved == resource
+}
+
+// Form validation
+#[quickcheck]
+fn prop_form_validation_consistent(form_data: FormData) -> bool {
+    let client_validation = validate_client_side(&form_data);
+    let server_validation = validate_server_side(&form_data);
+    client_validation == server_validation
+}
+#+END_SRC
+
+*** "My Code Isn't Mathematical"
+#+BEGIN_SRC rust
+// MISCONCEPTION: Need pure functions
+// REALITY: Test behavior, not implementation
+
+// Testing a shopping cart (very stateful!)
+#[quickcheck]
+fn prop_cart_total_matches_items(operations: Vec<CartOp>) -> bool {
+    let mut cart = Cart::new();
+    
+    for op in operations {
+        match op {
+            CartOp::Add(item) => cart.add(item),
+            CartOp::Remove(id) => cart.remove(id),
+            CartOp::UpdateQuantity(id, qty) => cart.update_quantity(id, qty),
+        }
+    }
+    
+    // Property: total always matches sum of items
+    let calculated_total = cart.items()
+        .map(|item| item.price * item.quantity)
+        .sum();
+    
+    cart.total() == calculated_total
+}
+#+END_SRC
+
+* Encoding/Decoding Properties (The "Reverse of Reverse" Pattern)
+
+** Core Encoding Properties
+
+*** Round-Trip Properties
+#+BEGIN_SRC rust
+// The classic: encode then decode equals identity
+// f⁻¹(f(x)) = x
+
+#[quickcheck]
+fn prop_base64_round_trip(data: Vec<u8>) -> bool {
+    let encoded = base64::encode(&data);
+    let decoded = base64::decode(&encoded).unwrap();
+    decoded == data
+}
+
+#[quickcheck]
+fn prop_json_round_trip(value: serde_json::Value) -> bool {
+    let encoded = serde_json::to_string(&value).unwrap();
+    let decoded: serde_json::Value = serde_json::from_str(&encoded).unwrap();
+    decoded == value
+}
+
+#[quickcheck]
+fn prop_url_encoding_round_trip(text: String) -> bool {
+    let encoded = urlencoding::encode(&text);
+    let decoded = urlencoding::decode(&encoded).unwrap();
+    decoded == text
+}
+
+#[quickcheck]
+fn prop_compression_round_trip(data: Vec<u8>) -> bool {
+    let compressed = compress(&data);
+    let decompressed = decompress(&compressed).unwrap();
+    decompressed == data
+}
+
+// The reverse of reverse pattern
+#[quickcheck]
+fn prop_reverse_of_reverse(s: String) -> bool {
+    let reversed: String = s.chars().rev().collect();
+    let double_reversed: String = reversed.chars().rev().collect();
+    double_reversed == s
+}
+
+#[quickcheck]
+fn prop_rot13_twice(text: String) -> bool {
+    // ROT13 is its own inverse
+    rot13(&rot13(&text)) == text
+}
+#+END_SRC
+
+*** Injection Properties (No Information Loss)
+#+BEGIN_SRC rust
+// If encoding is injective, different inputs produce different outputs
+#[quickcheck]
+fn prop_encoding_injective(a: Data, b: Data) -> bool {
+    if a != b {
+        encode(&a) != encode(&b)
+    } else {
+        true
+    }
+}
+
+// But some encodings are intentionally lossy
+#[quickcheck]
+fn prop_lowercase_not_injective() -> bool {
+    let a = "Hello";
+    let b = "HELLO";
+    a != b && a.to_lowercase() == b.to_lowercase()
+}
+#+END_SRC
+
+*** Preservation Properties
+#+BEGIN_SRC rust
+// Some properties should be preserved through encoding
+
+#[quickcheck]
+fn prop_json_preserves_structure(value: MyStruct) -> bool {
+    let json = serde_json::to_value(&value).unwrap();
+    
+    // Structure is preserved
+    json["id"] == value.id.into() &&
+    json["name"] == value.name.into() &&
+    json["items"].as_array().unwrap().len() == value.items.len()
+}
+
+#[quickcheck]
+fn prop_compression_preserves_content_not_size(data: Vec<u8>) -> bool {
+    let compressed = compress(&data);
+    let decompressed = decompress(&compressed).unwrap();
+    
+    // Content preserved
+    decompressed == data &&
+    // But size usually changes (except for incompressible data)
+    (compressed.len() <= data.len() || data.len() < 100)
+}
+#+END_SRC
+
+*** Canonical Form Properties
+#+BEGIN_SRC rust
+// Some encodings should produce canonical forms
+
+#[quickcheck]
+fn prop_normalized_unicode(text: String) -> bool {
+    use unicode_normalization::UnicodeNormalization;
+    
+    let nfc = text.nfc().collect::<String>();
+    let nfc_twice = nfc.nfc().collect::<String>();
+    
+    // Normalizing twice = normalizing once (idempotent)
+    nfc == nfc_twice
+}
+
+#[quickcheck]
+fn prop_canonical_json(value: serde_json::Value) -> bool {
+    let canonical1 = canonicalize_json(&value);
+    let canonical2 = canonicalize_json(&canonical1);
+    
+    // Already canonical after first pass
+    canonical1 == canonical2
+}
+#+END_SRC
+
+** Web-Specific Encoding Properties
+
+*** HTML Escaping
+#+BEGIN_SRC rust
+#[quickcheck]
+fn prop_html_escape_safe(user_input: String) -> bool {
+    let escaped = html_escape(&user_input);
+    
+    // No dangerous characters remain
+    !escaped.contains('<') &&
+    !escaped.contains('>') &&
+    !escaped.contains('"') &&
+    !escaped.contains('\'') &&
+    !escaped.contains('&') || escaped.contains("&amp;")
+}
+
+#[quickcheck]
+fn prop_html_escape_reversible(text: String) -> TestResult {
+    // Only test with non-HTML text
+    if text.contains('<') || text.contains('>') {
+        return TestResult::discard();
+    }
+    
+    let escaped = html_escape(&text);
+    let unescaped = html_unescape(&escaped);
+    TestResult::from_bool(unescaped == text)
+}
+#+END_SRC
+
+*** SQL Escaping
+#+BEGIN_SRC rust
+#[quickcheck]
+fn prop_sql_escape_prevents_injection(user_input: String) -> bool {
+    let query = format!(
+        "SELECT * FROM users WHERE name = '{}'",
+        sql_escape(&user_input)
+    );
+    
+    // Parse query to ensure it's valid and safe
+    let parsed = parse_sql(&query).unwrap();
+    
+    // Should only have one string literal in WHERE clause
+    count_string_literals(&parsed.where_clause) == 1
+}
+#+END_SRC
+
+*** JWT Token Properties
+#+BEGIN_SRC rust
+#[quickcheck]
+fn prop_jwt_round_trip(claims: Claims) -> bool {
+    let secret = "test_secret";
+    let token = encode_jwt(&claims, secret).unwrap();
+    let decoded = decode_jwt(&token, secret).unwrap();
+    decoded == claims
+}
+
+#[quickcheck]
+fn prop_jwt_tampering_detected(claims: Claims, tampering: String) -> bool {
+    let secret = "test_secret";
+    let token = encode_jwt(&claims, secret).unwrap();
+    
+    // Tamper with the token
+    let tampered = token.replace(
+        &token[10..20],
+        &tampering[..tampering.len().min(10)]
+    );
+    
+    // Should fail to decode
+    decode_jwt(&tampered, secret).is_err()
+}
+#+END_SRC
+
+* Fast Property Testing Strategies
+
+** Tiered Testing Approach
+#+BEGIN_SRC rust
+// Fast tests for development
+mod quick_tests {
+    #[quickcheck(tests = 10)]
+    fn prop_quick_smoke_test(input: Input) -> bool {
+        // Basic sanity check
+        process(input).is_ok()
+    }
+}
+
+// Standard tests for pre-commit
+mod standard_tests {
+    #[quickcheck(tests = 100)]
+    fn prop_standard_test(input: Input) -> bool {
+        let result = process(input);
+        validate_result(result)
+    }
+}
+
+// Thorough tests for CI
+mod ci_tests {
+    #[quickcheck(tests = 1000)]
+    fn prop_thorough_test(input: Input) -> bool {
+        let result = process(input);
+        validate_result(result) &&
+        check_invariants(result)
+    }
+}
+
+// Exhaustive tests for nightly
+mod nightly_tests {
+    #[quickcheck(tests = 100000)]
+    fn prop_exhaustive_test(input: Input) -> bool {
+        // Full validation
+        comprehensive_check(input)
+    }
+}
+#+END_SRC
+
+** Smart Input Generation
+#+BEGIN_SRC rust
+// Don't generate huge inputs unnecessarily
+impl Arbitrary for EfficientInput {
+    fn arbitrary(g: &mut Gen) -> Self {
+        // Use smaller sizes for faster tests
+        let size = (g.size() / 4).min(100);
+        
+        EfficientInput {
+            // Generate reasonably-sized data
+            text: (0..size)
+                .map(|_| char::arbitrary(g))
+                .collect(),
+            numbers: (0..size/10)
+                .map(|_| u32::arbitrary(g) % 1000)
+                .collect(),
+        }
+    }
+}
+
+// Focus on edge cases
+struct EdgeCaseFocusedInput;
+
+impl Arbitrary for EdgeCaseFocusedInput {
+    fn arbitrary(g: &mut Gen) -> Self {
+        // 50% chance of edge case
+        if bool::arbitrary(g) {
+            // Generate edge case
+            match u8::arbitrary(g) % 4 {
+                0 => EdgeCaseFocusedInput::Empty,
+                1 => EdgeCaseFocusedInput::MaxSize,
+                2 => EdgeCaseFocusedInput::Special,
+                _ => EdgeCaseFocusedInput::Boundary,
+            }
+        } else {
+            // Generate normal case
+            EdgeCaseFocusedInput::Normal(...)
+        }
+    }
+}
+#+END_SRC
+
+** Incremental Property Testing
+#+BEGIN_SRC rust
+// Start with simple properties, add more over time
+
+// Phase 1: Just don't crash
+#[quickcheck]
+fn prop_no_panic_v1(input: Input) -> bool {
+    let _ = process(input);
+    true
+}
+
+// Phase 2: Basic correctness
+#[quickcheck]
+fn prop_basic_correctness_v2(input: Input) -> bool {
+    match process(input) {
+        Ok(result) => result.is_valid(),
+        Err(_) => true,  // Errors are OK
+    }
+}
+
+// Phase 3: Full properties
+#[quickcheck]
+fn prop_full_properties_v3(input: Input) -> bool {
+    match process(input) {
+        Ok(result) => {
+            result.is_valid() &&
+            result.satisfies_invariants() &&
+            result.matches_spec()
+        }
+        Err(e) => is_expected_error(e),
+    }
+}
+#+END_SRC
+
+* Property Testing for Web Applications
+
+** RESTful API Properties
+#+BEGIN_SRC rust
+// CRUD properties
+#[quickcheck]
+fn prop_crud_lifecycle(resource: Resource) -> bool {
+    // Create
+    let id = api.post(resource.clone()).unwrap();
+    
+    // Read
+    let retrieved = api.get(id).unwrap();
+    assert_eq!(retrieved, resource);
+    
+    // Update
+    let updated = Resource { ..resource, version: 2 };
+    api.put(id, updated.clone()).unwrap();
+    assert_eq!(api.get(id).unwrap(), updated);
+    
+    // Delete
+    api.delete(id).unwrap();
+    assert!(api.get(id).is_none());
+    
+    true
+}
+
+// Idempotency properties
+#[quickcheck]
+fn prop_put_idempotent(id: Id, resource: Resource) -> bool {
+    api.put(id, resource.clone()).unwrap();
+    let after_first = api.get(id).unwrap();
+    
+    api.put(id, resource.clone()).unwrap();
+    let after_second = api.get(id).unwrap();
+    
+    after_first == after_second
+}
+
+#[quickcheck]
+fn prop_delete_idempotent(id: Id) -> bool {
+    // First delete
+    let first_result = api.delete(id);
+    
+    // Second delete
+    let second_result = api.delete(id);
+    
+    // Both should succeed or both should 404
+    first_result.is_ok() || 
+    (first_result.is_err() && second_result.is_err())
+}
+#+END_SRC
+
+** Authentication/Authorization Properties
+#+BEGIN_SRC rust
+#[quickcheck]
+fn prop_auth_token_lifecycle(user: User) -> bool {
+    // Login
+    let token = auth.login(&user).unwrap();
+    
+    // Token works
+    assert!(auth.verify(&token).is_ok());
+    
+    // Logout
+    auth.logout(&token).unwrap();
+    
+    // Token no longer works
+    assert!(auth.verify(&token).is_err());
+    
+    true
+}
+
+#[quickcheck]
+fn prop_permissions_enforced(user: User, resource: Resource) -> bool {
+    let token = auth.login(&user).unwrap();
+    
+    let can_access = user.has_permission(&resource);
+    let actual_access = api.with_auth(&token).get(&resource);
+    
+    can_access == actual_access.is_ok()
+}
+#+END_SRC
+
+** Session Management Properties
+#+BEGIN_SRC rust
+#[quickcheck]
+fn prop_session_timeout(actions: Vec<Action>) -> bool {
+    let mut session = Session::new();
+    let timeout = Duration::from_secs(300);
+    
+    for action in actions {
+        if action.timestamp - session.last_activity > timeout {
+            assert!(session.is_expired());
+            return true;
+        }
+        session.update(action);
+    }
+    
+    !session.is_expired()
+}
+
+#[quickcheck]
+fn prop_session_data_persistence(data: SessionData) -> bool {
+    let session_id = session_store.create();
+    session_store.set(session_id, "data", &data).unwrap();
+    
+    let retrieved = session_store.get(session_id, "data").unwrap();
+    retrieved == data
+}
+#+END_SRC
+
+** Form Validation Properties
+#+BEGIN_SRC rust
+#[quickcheck]
+fn prop_email_validation(input: String) -> bool {
+    let is_valid = validate_email(&input);
+    
+    if is_valid {
+        // If valid, should contain @ and .
+        input.contains('@') && 
+        input.contains('.') &&
+        input.find('@').unwrap() < input.rfind('.').unwrap()
+    } else {
+        true  // Invalid emails can be anything
+    }
+}
+
+#[quickcheck]
+fn prop_sanitization_preserves_validity(valid_input: ValidInput) -> bool {
+    let sanitized = sanitize(valid_input.as_str());
+    validate(&sanitized).is_ok()
+}
+#+END_SRC
+
+* Making Property Testing Practical
+
+** Start Small
+#+BEGIN_SRC rust
+// Week 1: Just one property test
+#[quickcheck]
+fn prop_my_first_property(input: String) -> bool {
+    process(input).is_ok()  // Just don't crash
+}
+
+// Week 2: Add round-trip
+#[quickcheck]
+fn prop_serialization_works(data: MyData) -> bool {
+    let json = to_json(&data);
+    from_json(&json) == Ok(data)
+}
+
+// Week 3: Add invariant
+#[quickcheck]
+fn prop_invariant_maintained(ops: Vec<Operation>) -> bool {
+    let mut state = State::new();
+    for op in ops {
+        state.apply(op);
+        if !state.is_valid() {
+            return false;
+        }
+    }
+    true
+}
+#+END_SRC
+
+** Focus on High-Value Properties
+#+BEGIN_SRC rust
+// Don't test everything, test what matters
+
+// HIGH VALUE: Security properties
+#[quickcheck]
+fn prop_no_sql_injection(user_input: String) -> bool {
+    let query = build_query(&user_input);
+    is_safe_sql(&query)
+}
+
+// HIGH VALUE: Data integrity
+#[quickcheck]
+fn prop_no_data_loss(operations: Vec<Op>) -> bool {
+    // Apply operations
+    let result = apply_all(operations);
+    
+    // Check nothing was lost
+    result.total_items() == operations.iter()
+        .filter(|op| matches!(op, Op::Add(_)))
+        .count()
+}
+
+// LOW VALUE: UI formatting
+// Don't property test this, use snapshot tests instead
+#+END_SRC
+
+** Integrate Gradually
+#+BEGIN_SRC toml
+# Cargo.toml
+[dev-dependencies]
+quickcheck = "1"
+
+[profile.property-test]
+inherits = "test"
+opt-level = 2  # Faster execution
+
+[package.metadata.property-test]
+# Custom configuration
+quick_tests = 10
+standard_tests = 100
+ci_tests = 1000
+#+END_SRC
+
+#+BEGIN_SRC yaml
+# CI configuration
+test:
+  stage: test
+  script:
+    # Regular tests first (fast)
+    - cargo test --lib
+    
+    # Property tests with limit (slower)
+    - QUICKCHECK_TESTS=100 cargo test --profile property-test
+    
+    # Extensive property tests (nightly only)
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      script:
+        - QUICKCHECK_TESTS=10000 cargo test --profile property-test
+#+END_SRC
+
+---
+
+*Priority:* CRITICAL - Makes property testing practical for real applications

@@ -1,0 +1,878 @@
+#+TITLE: QuickCheck & Property-Based Testing Deep Dive in Rust
+#+AUTHOR: RustConf 2025 UnConference
+#+TAGS: property-testing quickcheck proptest testing invariants
+#+OPTIONS: toc:3 num:t
+
+* Introduction to Property-Based Testing
+
+Property-based testing (PBT) is a testing methodology where you define properties that should hold for all inputs, and the testing framework generates random test cases to try to find counterexamples.
+
+** Traditional Testing vs Property Testing
+#+BEGIN_SRC rust
+// Traditional unit test - specific cases
+#[test]
+fn test_reverse_specific() {
+    assert_eq!(reverse("hello"), "olleh");
+    assert_eq!(reverse(""), "");
+    assert_eq!(reverse("a"), "a");
+}
+
+// Property test - universal properties
+quickcheck! {
+    fn prop_reverse_twice_is_identity(s: String) -> bool {
+        reverse(&reverse(&s)) == s
+    }
+}
+#+END_SRC
+
+* QuickCheck vs Proptest: Choosing Your Tool
+
+** Comparison Table
+| Feature | QuickCheck | Proptest | Winner |
+|---------+------------+----------+--------|
+| API simplicity | Simple macros | More verbose | QuickCheck |
+| Shrinking quality | Basic | Excellent | Proptest |
+| Custom strategies | Manual | Built-in combinators | Proptest |
+| Compile time | Fast | Slower | QuickCheck |
+| Documentation | Good | Excellent | Proptest |
+| Async support | No | Yes | Proptest |
+| Deterministic replay | No | Yes (seed) | Proptest |
+
+** When to Use Each
+- **QuickCheck**: Simple properties, quick tests, learning PBT
+- **Proptest**: Complex data, better shrinking needed, production code
+
+* QuickCheck Deep Dive
+
+** Installation and Setup
+#+BEGIN_SRC toml
+# Cargo.toml
+[dev-dependencies]
+quickcheck = "1.0"
+quickcheck_macros = "1.0"
+
+# For regex and other utilities
+rand = "0.8"
+regex = "1.10"
+#+END_SRC
+
+** Basic Usage Patterns
+
+*** The quickcheck! Macro
+#+BEGIN_SRC rust
+use quickcheck::{quickcheck, TestResult};
+
+quickcheck! {
+    // Simple property
+    fn prop_addition_commutative(a: i32, b: i32) -> bool {
+        a + b == b + a
+    }
+    
+    // Multiple arguments
+    fn prop_vec_len_after_push(mut vec: Vec<i32>, item: i32) -> bool {
+        let old_len = vec.len();
+        vec.push(item);
+        vec.len() == old_len + 1
+    }
+    
+    // Using TestResult for conditional properties
+    fn prop_division(a: i32, b: i32) -> TestResult {
+        if b == 0 {
+            return TestResult::discard();
+        }
+        TestResult::from_bool((a / b) * b + (a % b) == a)
+    }
+}
+#+END_SRC
+
+*** The #[quickcheck] Attribute
+#+BEGIN_SRC rust
+use quickcheck_macros::quickcheck;
+
+#[quickcheck]
+fn prop_sort_idempotent(mut xs: Vec<i32>) -> bool {
+    xs.sort();
+    let first_sort = xs.clone();
+    xs.sort();
+    xs == first_sort
+}
+
+#[quickcheck]
+fn prop_concatenation_length(s1: String, s2: String) -> bool {
+    let concatenated = format!("{}{}", s1, s2);
+    concatenated.len() == s1.len() + s2.len()
+}
+#+END_SRC
+
+** Implementing Arbitrary for Custom Types
+
+*** Basic Implementation
+#+BEGIN_SRC rust
+use quickcheck::{Arbitrary, Gen};
+
+#[derive(Clone, Debug)]
+struct Email {
+    local: String,
+    domain: String,
+}
+
+impl Arbitrary for Email {
+    fn arbitrary(g: &mut Gen) -> Self {
+        // Generate valid email components
+        let local = (1..20)
+            .map(|_| {
+                let chars = "abcdefghijklmnopqrstuvwxyz0123456789._-";
+                let idx = usize::arbitrary(g) % chars.len();
+                chars.chars().nth(idx).unwrap()
+            })
+            .collect::<String>();
+            
+        let domain = format!(
+            "{}.{}",
+            String::arbitrary(g)
+                .chars()
+                .filter(|c| c.is_alphanumeric())
+                .take(10)
+                .collect::<String>(),
+            ["com", "org", "net", "io"][usize::arbitrary(g) % 4]
+        );
+        
+        Email { local, domain }
+    }
+    
+    fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
+        // Shrink to simpler emails
+        let local = self.local.clone();
+        let domain = self.domain.clone();
+        
+        Box::new(
+            local.shrink()
+                .map(move |l| Email { 
+                    local: l, 
+                    domain: domain.clone() 
+                })
+        )
+    }
+}
+#+END_SRC
+
+*** Complex Type with Invariants
+#+BEGIN_SRC rust
+#[derive(Clone, Debug)]
+struct SortedVec<T: Ord + Clone> {
+    data: Vec<T>,
+}
+
+impl<T: Arbitrary + Ord + Clone> Arbitrary for SortedVec<T> {
+    fn arbitrary(g: &mut Gen) -> Self {
+        let mut data = Vec::<T>::arbitrary(g);
+        data.sort();
+        SortedVec { data }
+    }
+    
+    fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
+        Box::new(
+            self.data.shrink()
+                .map(|mut data| {
+                    data.sort();
+                    SortedVec { data }
+                })
+        )
+    }
+}
+
+// Properties that use SortedVec
+#[quickcheck]
+fn prop_sorted_vec_maintains_order(sv: SortedVec<i32>) -> bool {
+    sv.data.windows(2).all(|w| w[0] <= w[1])
+}
+#+END_SRC
+
+** Advanced Generation Strategies
+
+*** Sized Generation
+#+BEGIN_SRC rust
+use quickcheck::{Gen, Arbitrary};
+
+struct Tree<T> {
+    value: T,
+    children: Vec<Tree<T>>,
+}
+
+impl<T: Arbitrary> Arbitrary for Tree<T> {
+    fn arbitrary(g: &mut Gen) -> Self {
+        let size = g.size();
+        
+        if size == 0 {
+            // Base case: leaf node
+            Tree {
+                value: T::arbitrary(g),
+                children: vec![],
+            }
+        } else {
+            // Recursive case: reduce size for children
+            let num_children = usize::arbitrary(g) % 4;
+            let child_size = size / (num_children + 1);
+            
+            let children = (0..num_children)
+                .map(|_| {
+                    let mut child_gen = Gen::new(child_size);
+                    Tree::arbitrary(&mut child_gen)
+                })
+                .collect();
+                
+            Tree {
+                value: T::arbitrary(g),
+                children,
+            }
+        }
+    }
+}
+#+END_SRC
+
+*** Frequency-Based Generation
+#+BEGIN_SRC rust
+#[derive(Clone, Debug)]
+enum Expression {
+    Constant(i32),
+    Variable(String),
+    Add(Box<Expression>, Box<Expression>),
+    Multiply(Box<Expression>, Box<Expression>),
+}
+
+impl Arbitrary for Expression {
+    fn arbitrary(g: &mut Gen) -> Self {
+        let size = g.size();
+        
+        if size == 0 {
+            // Base cases only
+            if bool::arbitrary(g) {
+                Expression::Constant(i32::arbitrary(g) % 100)
+            } else {
+                Expression::Variable(
+                    ['x', 'y', 'z'][usize::arbitrary(g) % 3].to_string()
+                )
+            }
+        } else {
+            // Weighted choice
+            match usize::arbitrary(g) % 10 {
+                0..=2 => Expression::Constant(i32::arbitrary(g) % 100),
+                3..=4 => Expression::Variable(
+                    ['x', 'y', 'z'][usize::arbitrary(g) % 3].to_string()
+                ),
+                5..=7 => {
+                    let mut g1 = Gen::new(size / 2);
+                    let mut g2 = Gen::new(size / 2);
+                    Expression::Add(
+                        Box::new(Expression::arbitrary(&mut g1)),
+                        Box::new(Expression::arbitrary(&mut g2)),
+                    )
+                }
+                _ => {
+                    let mut g1 = Gen::new(size / 2);
+                    let mut g2 = Gen::new(size / 2);
+                    Expression::Multiply(
+                        Box::new(Expression::arbitrary(&mut g1)),
+                        Box::new(Expression::arbitrary(&mut g2)),
+                    )
+                }
+            }
+        }
+    }
+}
+#+END_SRC
+
+* Property Patterns and Techniques
+
+** Round-Trip Properties
+#+BEGIN_SRC rust
+#[quickcheck]
+fn prop_json_roundtrip(data: MyData) -> bool {
+    let json = serde_json::to_string(&data).unwrap();
+    let parsed: MyData = serde_json::from_str(&json).unwrap();
+    parsed == data
+}
+
+#[quickcheck]
+fn prop_base64_roundtrip(bytes: Vec<u8>) -> bool {
+    use base64::{encode, decode};
+    decode(&encode(&bytes)).unwrap() == bytes
+}
+
+#[quickcheck]
+fn prop_compression_roundtrip(data: Vec<u8>) -> bool {
+    let compressed = compress(&data);
+    let decompressed = decompress(&compressed).unwrap();
+    decompressed == data
+}
+#+END_SRC
+
+** Invariant Properties
+#+BEGIN_SRC rust
+// Data structure invariants
+#[quickcheck]
+fn prop_btree_invariants(operations: Vec<TreeOp<i32>>) -> bool {
+    let mut tree = BTree::new();
+    
+    for op in operations {
+        match op {
+            TreeOp::Insert(key, value) => tree.insert(key, value),
+            TreeOp::Remove(key) => { tree.remove(&key); }
+        }
+        
+        // Check invariants after each operation
+        if !tree.is_valid_btree() {
+            return false;
+        }
+        if !tree.is_balanced() {
+            return false;
+        }
+        if tree.size() != tree.count_nodes() {
+            return false;
+        }
+    }
+    true
+}
+
+// Algorithm invariants
+#[quickcheck]
+fn prop_sort_invariants(mut data: Vec<i32>) -> bool {
+    let original_sum: i32 = data.iter().sum();
+    let original_len = data.len();
+    
+    data.sort();
+    
+    // Same elements (permutation)
+    let sorted_sum: i32 = data.iter().sum();
+    let sorted_len = data.len();
+    
+    // Check invariants
+    original_sum == sorted_sum &&
+    original_len == sorted_len &&
+    data.windows(2).all(|w| w[0] <= w[1])
+}
+#+END_SRC
+
+** Model-Based Testing
+#+BEGIN_SRC rust
+// Test against a simple, obviously correct model
+#[quickcheck]
+fn prop_optimized_matches_naive(input: TestInput) -> bool {
+    let naive_result = naive_algorithm(&input);
+    let optimized_result = optimized_algorithm(&input);
+    naive_result == optimized_result
+}
+
+// Example: Test custom hash map against std::HashMap
+#[derive(Clone, Debug)]
+enum HashMapOp<K, V> {
+    Insert(K, V),
+    Remove(K),
+    Get(K),
+}
+
+#[quickcheck]
+fn prop_custom_hashmap_matches_std(ops: Vec<HashMapOp<i32, String>>) -> bool {
+    let mut std_map = std::collections::HashMap::new();
+    let mut custom_map = CustomHashMap::new();
+    
+    for op in ops {
+        match op {
+            HashMapOp::Insert(k, v) => {
+                let std_result = std_map.insert(k, v.clone());
+                let custom_result = custom_map.insert(k, v);
+                if std_result != custom_result {
+                    return false;
+                }
+            }
+            HashMapOp::Remove(k) => {
+                let std_result = std_map.remove(&k);
+                let custom_result = custom_map.remove(&k);
+                if std_result != custom_result {
+                    return false;
+                }
+            }
+            HashMapOp::Get(k) => {
+                let std_result = std_map.get(&k);
+                let custom_result = custom_map.get(&k);
+                if std_result != custom_result {
+                    return false;
+                }
+            }
+        }
+    }
+    true
+}
+#+END_SRC
+
+** Metamorphic Properties
+#+BEGIN_SRC rust
+// Different paths to the same result
+#[quickcheck]
+fn prop_map_fusion(data: Vec<i32>) -> bool {
+    // map(f) . map(g) == map(f ∘ g)
+    let result1: Vec<_> = data.iter()
+        .map(|x| x * 2)
+        .map(|x| x + 1)
+        .collect();
+        
+    let result2: Vec<_> = data.iter()
+        .map(|x| x * 2 + 1)
+        .collect();
+        
+    result1 == result2
+}
+
+#[quickcheck]
+fn prop_filter_commutes(data: Vec<i32>) -> bool {
+    // filter(p) . filter(q) == filter(q) . filter(p)
+    let result1: Vec<_> = data.iter()
+        .filter(|&&x| x > 0)
+        .filter(|&&x| x % 2 == 0)
+        .cloned()
+        .collect();
+        
+    let result2: Vec<_> = data.iter()
+        .filter(|&&x| x % 2 == 0)
+        .filter(|&&x| x > 0)
+        .cloned()
+        .collect();
+        
+    result1 == result2
+}
+#+END_SRC
+
+* Shrinking: Finding Minimal Counterexamples
+
+** Understanding Shrinking
+#+BEGIN_SRC rust
+// When a property fails, QuickCheck tries to find the smallest input that still fails
+
+#[quickcheck]
+fn prop_no_duplicate_ids(users: Vec<User>) -> bool {
+    let mut seen = HashSet::new();
+    for user in users {
+        if !seen.insert(user.id) {
+            return false; // Found duplicate!
+        }
+    }
+    true
+}
+
+// Initial failure might be:
+// vec![User{id: 7823, name: "asdlkfj"}, User{id: 9234, ...}, User{id: 7823, ...}, ...]
+// After shrinking:
+// vec![User{id: 0, name: ""}, User{id: 0, name: ""}]
+#+END_SRC
+
+** Custom Shrinking Strategies
+#+BEGIN_SRC rust
+impl Arbitrary for User {
+    fn arbitrary(g: &mut Gen) -> Self {
+        User {
+            id: u32::arbitrary(g),
+            name: String::arbitrary(g),
+            email: Email::arbitrary(g),
+        }
+    }
+    
+    fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
+        // Shrink each field independently
+        let id = self.id;
+        let name = self.name.clone();
+        let email = self.email.clone();
+        
+        Box::new(
+            id.shrink()
+                .map(move |i| User { 
+                    id: i, 
+                    name: name.clone(), 
+                    email: email.clone() 
+                })
+                .chain(
+                    name.shrink()
+                        .map(move |n| User { 
+                            id, 
+                            name: n, 
+                            email: email.clone() 
+                        })
+                )
+        )
+    }
+}
+#+END_SRC
+
+* Real-World Examples
+
+** Parser Testing
+#+BEGIN_SRC rust
+#[derive(Clone, Debug)]
+struct JsonValue {
+    // Simplified JSON for example
+}
+
+impl Arbitrary for JsonValue {
+    fn arbitrary(g: &mut Gen) -> Self {
+        // Generate valid JSON values
+        // ...
+    }
+}
+
+#[quickcheck]
+fn prop_parser_never_panics(input: String) -> bool {
+    // Parser should handle any input gracefully
+    let _ = parse_json(&input);
+    true // If we get here, it didn't panic
+}
+
+#[quickcheck]
+fn prop_parser_accepts_valid_json(value: JsonValue) -> bool {
+    let json_string = value.to_string();
+    parse_json(&json_string).is_ok()
+}
+
+#[quickcheck]
+fn prop_pretty_print_preserves_meaning(value: JsonValue) -> bool {
+    let compact = value.to_string();
+    let pretty = value.pretty_print();
+    
+    parse_json(&compact) == parse_json(&pretty)
+}
+#+END_SRC
+
+** Concurrent Data Structure Testing
+#+BEGIN_SRC rust
+use std::sync::Arc;
+use std::thread;
+
+#[derive(Clone, Debug)]
+enum ConcurrentOp {
+    Push(i32),
+    Pop,
+    Peek,
+}
+
+#[quickcheck]
+fn prop_concurrent_stack_linearizable(
+    ops: Vec<(usize, ConcurrentOp)>
+) -> bool {
+    let stack = Arc::new(ConcurrentStack::new());
+    let num_threads = 4;
+    
+    // Partition operations among threads
+    let mut thread_ops = vec![vec![]; num_threads];
+    for (thread_id, op) in ops {
+        thread_ops[thread_id % num_threads].push(op);
+    }
+    
+    // Execute concurrently
+    let handles: Vec<_> = thread_ops
+        .into_iter()
+        .map(|ops| {
+            let stack = stack.clone();
+            thread::spawn(move || {
+                let mut results = vec![];
+                for op in ops {
+                    let result = match op {
+                        ConcurrentOp::Push(v) => {
+                            stack.push(v);
+                            Ok(())
+                        }
+                        ConcurrentOp::Pop => stack.pop(),
+                        ConcurrentOp::Peek => stack.peek().map(|v| Ok(v)),
+                    };
+                    results.push(result);
+                }
+                results
+            })
+        })
+        .collect();
+    
+    // Collect results
+    let results: Vec<_> = handles
+        .into_iter()
+        .map(|h| h.join().unwrap())
+        .collect();
+    
+    // Check linearizability
+    is_linearizable(&results)
+}
+#+END_SRC
+
+** Database Query Testing
+#+BEGIN_SRC rust
+#[derive(Clone, Debug)]
+struct Query {
+    select: Vec<String>,
+    from: String,
+    where_clause: Option<Condition>,
+    order_by: Option<String>,
+    limit: Option<usize>,
+}
+
+impl Arbitrary for Query {
+    fn arbitrary(g: &mut Gen) -> Self {
+        Query {
+            select: vec!["id", "name", "email"]
+                .into_iter()
+                .filter(|_| bool::arbitrary(g))
+                .map(String::from)
+                .collect(),
+            from: ["users", "posts", "comments"][usize::arbitrary(g) % 3].to_string(),
+            where_clause: Option::arbitrary(g),
+            order_by: Option::arbitrary(g),
+            limit: Option::arbitrary(g).map(|l: usize| l % 1000),
+        }
+    }
+}
+
+#[quickcheck]
+fn prop_query_builder_sql_valid(query: Query) -> TestResult {
+    if query.select.is_empty() {
+        return TestResult::discard();
+    }
+    
+    let sql = query.to_sql();
+    
+    // Check SQL is valid
+    TestResult::from_bool(validate_sql(&sql))
+}
+
+#[quickcheck]
+fn prop_query_optimizer_preserves_semantics(query: Query) -> bool {
+    let original_sql = query.to_sql();
+    let optimized_sql = optimize_query(&query).to_sql();
+    
+    // Both should produce the same results
+    execute_sql(&original_sql) == execute_sql(&optimized_sql)
+}
+#+END_SRC
+
+* Integration with CI/CD
+
+** Running in CI
+#+BEGIN_SRC yaml
+# .github/workflows/property-tests.yml
+name: Property Tests
+
+on: [push, pull_request]
+
+jobs:
+  quickcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run QuickCheck tests
+        run: |
+          # Run with more test cases in CI
+          QUICKCHECK_TESTS=10000 cargo test --release
+          
+      - name: Run with different seeds
+        run: |
+          for seed in 1 2 3 4 5; do
+            QUICKCHECK_SEED=$seed cargo test --release
+          done
+          
+      - name: Long-running property tests
+        if: github.event_name == 'schedule'
+        run: |
+          QUICKCHECK_TESTS=1000000 cargo test --release --test props_extended
+#+END_SRC
+
+** Configuration via Environment
+#+BEGIN_SRC rust
+use std::env;
+
+fn quickcheck_config() -> quickcheck::QuickCheck {
+    let tests = env::var("QUICKCHECK_TESTS")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(100);
+        
+    let max_tests = env::var("QUICKCHECK_MAX_TESTS")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(10000);
+        
+    quickcheck::QuickCheck::new()
+        .tests(tests)
+        .max_tests(max_tests)
+}
+
+#[test]
+fn test_with_custom_config() {
+    quickcheck_config()
+        .quickcheck(prop_my_property as fn(Vec<i32>) -> bool);
+}
+#+END_SRC
+
+* Debugging Failed Properties
+
+** Getting More Information
+#+BEGIN_SRC rust
+#[quickcheck]
+fn prop_with_debugging(input: ComplexInput) -> bool {
+    // Add debug output for failing cases
+    let result = process(&input);
+    
+    if !validate(&result) {
+        eprintln!("Failed for input: {:?}", input);
+        eprintln!("Result was: {:?}", result);
+        eprintln!("Expected properties: ...");
+        return false;
+    }
+    
+    true
+}
+
+// Using TestResult for better error messages
+#[quickcheck]
+fn prop_with_message(a: i32, b: i32) -> TestResult {
+    if b == 0 {
+        return TestResult::discard();
+    }
+    
+    let result = safe_divide(a, b);
+    
+    match result {
+        Ok(quotient) => {
+            let expected = a / b;
+            if quotient != expected {
+                TestResult::error(format!(
+                    "Division failed: {} / {} returned {} but expected {}",
+                    a, b, quotient, expected
+                ))
+            } else {
+                TestResult::passed()
+            }
+        }
+        Err(e) => TestResult::error(format!("Unexpected error: {}", e)),
+    }
+}
+#+END_SRC
+
+** Reproducing Failures
+#+BEGIN_SRC rust
+// QuickCheck doesn't have built-in seed support like proptest
+// But you can create reproducible tests:
+
+#[test]
+fn regression_test_found_by_quickcheck() {
+    // Minimal failing case found by QuickCheck
+    let input = vec![User { id: 0, name: "" }, User { id: 0, name: "a" }];
+    assert!(prop_no_duplicate_ids(input));
+}
+
+// Or use a deterministic generator for debugging
+fn deterministic_arbitrary<T: Arbitrary>() -> T {
+    let mut gen = Gen::new(100);
+    // Use a fixed seed
+    T::arbitrary(&mut gen)
+}
+#+END_SRC
+
+* Performance Considerations
+
+** Optimizing Property Tests
+#+BEGIN_SRC rust
+// Avoid expensive operations in properties
+#[quickcheck]
+fn prop_efficient(data: Vec<i32>) -> bool {
+    // Bad: O(n²) property check
+    // for i in 0..data.len() {
+    //     for j in 0..data.len() {
+    //         if i != j && data[i] == data[j] {
+    //             return false;
+    //         }
+    //     }
+    // }
+    
+    // Good: O(n) with HashSet
+    let mut seen = HashSet::with_capacity(data.len());
+    for item in data {
+        if !seen.insert(item) {
+            return false;
+        }
+    }
+    true
+}
+
+// Use TestResult::discard() liberally
+#[quickcheck]
+fn prop_with_precondition(input: Input) -> TestResult {
+    // Discard invalid inputs early
+    if !input.is_valid() {
+        return TestResult::discard();
+    }
+    
+    // Only run expensive check on valid inputs
+    TestResult::from_bool(expensive_property(&input))
+}
+#+END_SRC
+
+* Common Pitfalls and Solutions
+
+** Pitfall: Properties That Are Too Weak
+#+BEGIN_SRC rust
+// Weak property - doesn't catch bugs
+#[quickcheck]
+fn prop_sort_weak(mut data: Vec<i32>) -> bool {
+    data.sort();
+    true // This always passes!
+}
+
+// Strong property - actually validates behavior
+#[quickcheck]
+fn prop_sort_strong(mut data: Vec<i32>) -> bool {
+    let original = data.clone();
+    data.sort();
+    
+    // Check multiple properties
+    data.len() == original.len() &&
+    data.windows(2).all(|w| w[0] <= w[1]) &&
+    is_permutation(&data, &original)
+}
+#+END_SRC
+
+** Pitfall: Non-Deterministic Properties
+#+BEGIN_SRC rust
+// Bad: Uses current time
+#[quickcheck]
+fn prop_timeout_bad(duration: Duration) -> bool {
+    let start = Instant::now();
+    do_operation_with_timeout(duration);
+    start.elapsed() <= duration // Flaky!
+}
+
+// Good: Mock time or use deterministic checks
+#[quickcheck]
+fn prop_timeout_good(duration: Duration) -> bool {
+    let result = do_operation_with_timeout(duration);
+    result.is_err() || result.unwrap().completed_within(duration)
+}
+#+END_SRC
+
+* Resources and Further Reading
+
+** Essential Links
+- QuickCheck documentation: https://docs.rs/quickcheck
+- Original QuickCheck paper (Haskell): "QuickCheck: A Lightweight Tool for Random Testing"
+- Proptest (alternative): https://docs.rs/proptest
+- Property-based testing book: "Property-Based Testing with PropEr, Erlang, and Elixir"
+
+** Related Crates
+- `quickcheck_macros` - Procedural macros for QuickCheck
+- `proptest` - More powerful alternative with better shrinking
+- `arbitrary` - Shared trait for arbitrary data generation
+- `bolero` - Unified interface for property testing and fuzzing
+
+** Example Projects Using QuickCheck
+- Servo (browser engine)
+- Rust compiler (rustc tests)
+- Many parsing libraries (nom, pest)
+- Data structure libraries
+
+---
+
+*Priority:* CRITICAL - Property-based testing catches bugs unit tests miss
