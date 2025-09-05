@@ -1,0 +1,311 @@
+#+TITLE: Going from Hobbyist to Professional Rust
+#+FACILITATOR: Matt Mullins
+#+EMAIL: mokomull@gmail.com
+#+TAGS: professional-development career best-practices pragmatism
+#+OPTIONS: toc:2 num:t
+
+* Session Overview
+
+Do I waste two hours making perfect lifetime annotations, or do I wrap it in an Arc<Mutex<T>> and move on? This session explores the transition from hobbyist Rust programming to professional development, focusing on pragmatic trade-offs and real-world decision making.
+
+** The Core Dilemma
+- Perfectionism vs Shipping
+- Learning vs Delivering
+- Elegance vs Pragmatism
+- Performance vs Maintainability
+
+* The Hobbyist Mindset
+
+** Characteristics
+#+BEGIN_SRC rust
+// Hobbyist: Spending days on perfect zero-copy implementation
+impl<'a, 'b: 'a, T: 'a + ?Sized> Iterator for ComplexIterator<'a, 'b, T> 
+where
+    T: AsRef<[u8]> + PartialEq,
+{
+    type Item = &'a T;
+    // 200 lines of complex lifetime juggling
+}
+
+// Professional: Ship it with Clone
+impl Iterator for SimpleIterator {
+    type Item = String;
+    
+    fn next(&mut self) -> Option<String> {
+        self.inner.next().map(|s| s.to_string()) // Just clone it
+    }
+}
+#+END_SRC
+
+** Common Hobbyist Patterns
+- Over-engineering for hypothetical scale
+- Premature optimization
+- Avoiding allocations at all costs
+- Complex type gymnastics
+- Never using unsafe
+
+* The Professional Mindset
+
+** Key Principles
+1. **Ship Working Code** - Perfect is the enemy of good
+2. **Measure First** - Profile before optimizing
+3. **Team Velocity** - Readable > Clever
+4. **Business Value** - Features > Performance (usually)
+5. **Technical Debt** - Strategic, not accidental
+
+** Pragmatic Decisions
+#+BEGIN_SRC rust
+// Question: Spend 2 hours on lifetimes or use Arc<Mutex<T>>?
+
+// Hobbyist approach: Complex lifetimes
+struct DataProcessor<'a, 'b> {
+    data: &'a mut Data,
+    cache: &'b Cache,
+    phantom: PhantomData<&'b ()>,
+}
+
+// Professional approach: Just Arc<Mutex<T>>
+struct DataProcessor {
+    data: Arc<Mutex<Data>>,
+    cache: Arc<Cache>,
+}
+
+// Why professional is often better:
+// 1. Easier to understand
+// 2. Easier to refactor
+// 3. Works with async
+// 4. Team can contribute
+// 5. Can optimize later IF needed
+#+END_SRC
+
+* Decision Framework
+
+** When to Use Arc<Mutex<T>>
+#+BEGIN_SRC rust
+// YES: Shared state in application
+let app_state = Arc::new(Mutex::new(AppState::new()));
+
+// YES: Crossing thread boundaries
+let data = Arc::new(Mutex::new(data));
+let data_clone = data.clone();
+thread::spawn(move || {
+    data_clone.lock().unwrap().process();
+});
+
+// YES: Async contexts
+async fn handler(state: Arc<Mutex<State>>) -> Result<Response> {
+    let state = state.lock().unwrap();
+    // ... quick operation
+}
+
+// NO: Hot path in tight loop
+for i in 0..1_000_000 {
+    data.lock().unwrap().increment(); // BAD!
+}
+#+END_SRC
+
+** When to Fight the Borrow Checker
+#+BEGIN_SRC rust
+// Worth the fight: Core data structures
+pub struct RingBuffer<T, const N: usize> {
+    data: [MaybeUninit<T>; N],
+    head: usize,
+    tail: usize,
+}
+
+// Not worth it: Application logic
+// Just use Vec<T> and move on
+#+END_SRC
+
+** When to Use Unsafe
+#+BEGIN_SRC rust
+// Professional use of unsafe: Well-tested, documented, isolated
+pub struct FastBuffer {
+    ptr: *mut u8,
+    len: usize,
+    cap: usize,
+}
+
+impl FastBuffer {
+    pub fn push(&mut self, value: u8) {
+        if self.len == self.cap {
+            self.grow();
+        }
+        // SAFETY: We just ensured capacity
+        unsafe {
+            self.ptr.add(self.len).write(value);
+        }
+        self.len += 1;
+    }
+}
+
+// Hobbyist unsafe: Scattered everywhere to avoid clones
+unsafe {
+    let data = &mut *(data as *mut Data);
+    // "Trust me, this is fine"
+}
+#+END_SRC
+
+* Professional Patterns
+
+** Error Handling
+#+BEGIN_SRC rust
+// Hobbyist: Custom error for everything
+enum MyError {
+    IoError(io::Error),
+    ParseError(ParseError),
+    ValidationError(String),
+    // 20 more variants
+}
+
+// Professional: Use existing solutions
+use anyhow::Result;
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum AppError {
+    #[error("Database error")]
+    Database(#[from] sqlx::Error),
+    
+    #[error("Validation failed: {0}")]
+    Validation(String),
+}
+#+END_SRC
+
+** Testing Strategy
+#+BEGIN_SRC rust
+// Hobbyist: Testing every private function
+#[cfg(test)]
+mod tests {
+    fn test_private_helper() { /* ... */ }
+}
+
+// Professional: Test public API and behavior
+#[test]
+fn user_can_complete_purchase() {
+    let app = TestApp::spawn().await;
+    
+    let response = app.purchase_item(item_id).await;
+    
+    assert_eq!(response.status(), 200);
+    assert!(app.item_was_purchased(item_id).await);
+}
+#+END_SRC
+
+** Documentation
+#+BEGIN_SRC rust
+// Hobbyist: Over-documented internals
+/// Increments the internal counter by one using wrapping addition
+/// to prevent overflow, storing the result back in the counter field
+fn increment(&mut self) {
+    self.counter = self.counter.wrapping_add(1);
+}
+
+// Professional: Document why, not what
+/// Rate limit counter using wrapping arithmetic to handle 
+/// long-running services without panic on overflow
+fn increment(&mut self) {
+    self.counter = self.counter.wrapping_add(1);
+}
+#+END_SRC
+
+* Code Review Mindset
+
+** Hobbyist Review Comments
+- "This could be zero-copy"
+- "You should use const generics here"
+- "This allocates unnecessarily"
+- "Why not implement this as a macro?"
+
+** Professional Review Comments
+- "Will this be maintainable in 6 months?"
+- "Can we add a test for the error case?"
+- "Let's add a comment explaining why"
+- "This works - ship it"
+
+* Performance Optimization
+
+** Professional Approach
+#+BEGIN_SRC rust
+// Step 1: Write clear, working code
+fn process_data(items: Vec<Item>) -> Vec<Result> {
+    items.iter()
+        .map(|item| expensive_operation(item))
+        .collect()
+}
+
+// Step 2: Measure
+// Use cargo flamegraph, criterion, etc.
+
+// Step 3: Optimize IF needed
+fn process_data(items: Vec<Item>) -> Vec<Result> {
+    items.par_iter() // Only after profiling shows it helps
+        .map(|item| expensive_operation(item))
+        .collect()
+}
+#+END_SRC
+
+* Team Collaboration
+
+** Writing Team-Friendly Code
+#+BEGIN_SRC rust
+// Bad: Too clever
+let result = data.iter()
+    .zip(indices.iter())
+    .flat_map(|(d, &i)| {
+        mask[i].then(|| transforms[i % 4](d))
+    })
+    .fold(State::default(), |s, v| s.apply(v));
+
+// Good: Clear intent
+let mut state = State::default();
+for (data_item, &index) in data.iter().zip(indices.iter()) {
+    if mask[index] {
+        let transform_fn = transforms[index % 4];
+        let value = transform_fn(data_item);
+        state = state.apply(value);
+    }
+}
+#+END_SRC
+
+* Career Progression Markers
+
+| Stage | Focus | Code Style | Time Allocation |
+|-------+-------+------------+-----------------|
+| Beginner | Learning | Tutorial code | 90% learning, 10% building |
+| Hobbyist | Exploring | Over-engineered | 50% exploring, 50% building |
+| Junior Pro | Shipping | Pragmatic | 30% learning, 70% building |
+| Senior Pro | Architecture | Balanced | 20% mentoring, 80% architecting |
+| Staff | Strategy | Simple | 40% mentoring, 60% designing |
+
+* Discussion Topics
+
+** Key Questions
+- When is "good enough" good enough?
+- How to balance learning with delivery?
+- How to know when to optimize?
+- Managing technical debt strategically?
+
+** Trade-offs to Discuss
+- Clone vs Lifetime complexity
+- Async complexity vs simplicity
+- Generic vs Concrete types
+- Macro magic vs Boilerplate
+
+* Action Items
+
+** For Hobbyists
+- [ ] Ship something imperfect
+- [ ] Time-box perfection
+- [ ] Learn profiling tools
+- [ ] Read existing production code
+
+** For Professionals
+- [ ] Stay curious about advanced features
+- [ ] Contribute to open source
+- [ ] Mentor hobbyists
+- [ ] Document pragmatic decisions
+
+---
+
+*Priority:* HIGH - Critical career transition point

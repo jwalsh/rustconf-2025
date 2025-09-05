@@ -1,0 +1,317 @@
+#+TITLE: Streams and Iterators - Wonderful Use Cases
+#+FACILITATOR: Jacob Ouellet-Boudreault  
+#+EMAIL: jf1.44@videotron.ca
+#+TAGS: iterators streams functional-programming async
+#+OPTIONS: toc:2 num:t
+
+* Session Overview
+
+Talk about wonderful use cases of the Stream and Iterator traits' adapters. Explore powerful patterns, performance optimizations, and elegant solutions using Rust's iteration abstractions.
+
+** Why This Matters
+- Zero-cost abstractions
+- Composable operations
+- Lazy evaluation
+- Memory efficiency
+
+* Iterator Patterns
+
+** Chaining for Data Pipelines
+#+BEGIN_SRC rust
+// Beautiful data processing pipeline
+let result: Vec<Summary> = logs
+    .lines()
+    .filter(|line| line.contains("ERROR"))
+    .map(|line| parse_log_entry(line))
+    .filter_map(Result::ok)
+    .filter(|entry| entry.severity > 3)
+    .take(100)
+    .map(|entry| Summary::from(entry))
+    .collect();
+
+// Compare to imperative version (much longer!)
+#+END_SRC
+
+** Window and Chunk Operations
+#+BEGIN_SRC rust
+// Moving averages
+let moving_avg: Vec<f64> = data
+    .windows(5)
+    .map(|window| window.iter().sum::<f64>() / 5.0)
+    .collect();
+
+// Batch processing
+let batches: Vec<Vec<Item>> = items
+    .chunks(100)
+    .map(|chunk| process_batch(chunk))
+    .collect();
+#+END_SRC
+
+** Scan for Stateful Iteration
+#+BEGIN_SRC rust
+// Running total
+let running_totals: Vec<i32> = values
+    .iter()
+    .scan(0, |total, x| {
+        *total += x;
+        Some(*total)
+    })
+    .collect();
+
+// State machine with scan
+let states: Vec<State> = events
+    .iter()
+    .scan(State::Initial, |state, event| {
+        *state = state.transition(event);
+        Some(*state)
+    })
+    .collect();
+#+END_SRC
+
+* Stream Patterns (Async)
+
+** Async Data Processing
+#+BEGIN_SRC rust
+use futures::stream::{self, StreamExt};
+
+// Concurrent API calls
+let results: Vec<Response> = stream::iter(urls)
+    .map(|url| async move {
+        fetch_url(&url).await
+    })
+    .buffer_unordered(10) // 10 concurrent requests
+    .filter_map(|result| async move {
+        result.ok()
+    })
+    .take(50)
+    .collect()
+    .await;
+#+END_SRC
+
+** Combining Streams
+#+BEGIN_SRC rust
+use futures::stream::{self, StreamExt, SelectAll};
+
+// Merge multiple event sources
+let mut events = SelectAll::new();
+events.push(kafka_stream);
+events.push(websocket_stream);
+events.push(file_stream);
+
+while let Some(event) = events.next().await {
+    process_event(event).await?;
+}
+#+END_SRC
+
+** Throttling and Rate Limiting
+#+BEGIN_SRC rust
+use futures::stream::StreamExt;
+use tokio::time::{interval, Duration};
+
+// Rate-limited processing
+let rate_limiter = interval(Duration::from_millis(100));
+let throttled = stream::iter(items)
+    .zip(rate_limiter)
+    .map(|(item, _)| item);
+
+throttled
+    .for_each_concurrent(5, |item| async move {
+        process_item(item).await;
+    })
+    .await;
+#+END_SRC
+
+* Advanced Iterator Techniques
+
+** Custom Iterator Adapters
+#+BEGIN_SRC rust
+trait IteratorExt: Iterator {
+    fn dedup_by_key<K, F>(self, key_fn: F) -> DedupByKey<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(&Self::Item) -> K,
+        K: PartialEq,
+    {
+        DedupByKey {
+            iter: self,
+            key_fn,
+            last_key: None,
+        }
+    }
+}
+
+impl<I: Iterator> IteratorExt for I {}
+
+// Usage
+let unique: Vec<_> = items
+    .iter()
+    .dedup_by_key(|item| item.id)
+    .collect();
+#+END_SRC
+
+** Lazy Evaluation Benefits
+#+BEGIN_SRC rust
+// This doesn't compute anything yet!
+let pipeline = (0..)
+    .map(|n| n * n)
+    .filter(|n| n % 2 == 0)
+    .take_while(|n| n < &1000000)
+    .filter(|n| is_prime(*n));
+
+// Only computes what's needed
+let first_ten: Vec<_> = pipeline.take(10).collect();
+#+END_SRC
+
+** Infinite Iterators
+#+BEGIN_SRC rust
+// Fibonacci sequence
+fn fibonacci() -> impl Iterator<Item = u64> {
+    let mut state = (0, 1);
+    std::iter::from_fn(move || {
+        let current = state.0;
+        state = (state.1, state.0 + state.1);
+        Some(current)
+    })
+}
+
+// Use with limits
+let fib_numbers: Vec<_> = fibonacci()
+    .take_while(|&n| n < 1000)
+    .collect();
+#+END_SRC
+
+* Performance Patterns
+
+** Avoiding Allocations
+#+BEGIN_SRC rust
+// Bad: Multiple allocations
+let result: Vec<String> = items
+    .iter()
+    .map(|item| item.to_string())
+    .filter(|s| s.len() > 5)
+    .collect();
+
+// Good: Single allocation
+let result: Vec<String> = items
+    .iter()
+    .filter(|item| item.len() > 5)
+    .map(|item| item.to_string())
+    .collect();
+#+END_SRC
+
+** Using extend vs collect
+#+BEGIN_SRC rust
+// Less efficient
+let mut vec = existing_vec;
+vec = vec.into_iter()
+    .chain(new_items.into_iter())
+    .collect();
+
+// More efficient
+existing_vec.extend(new_items);
+#+END_SRC
+
+** Parallel Iteration with Rayon
+#+BEGIN_SRC rust
+use rayon::prelude::*;
+
+// Sequential
+let results: Vec<_> = items
+    .iter()
+    .map(|item| expensive_computation(item))
+    .collect();
+
+// Parallel (automatic speedup!)
+let results: Vec<_> = items
+    .par_iter()
+    .map(|item| expensive_computation(item))
+    .collect();
+#+END_SRC
+
+* Real-World Use Cases
+
+** CSV Processing
+#+BEGIN_SRC rust
+use csv::Reader;
+
+let summary = Reader::from_path("data.csv")?
+    .records()
+    .filter_map(Result::ok)
+    .map(|record| Transaction::from_record(&record))
+    .filter(|trans| trans.amount > 100.0)
+    .fold(Summary::default(), |mut summary, trans| {
+        summary.total += trans.amount;
+        summary.count += 1;
+        summary
+    });
+#+END_SRC
+
+** Log Analysis
+#+BEGIN_SRC rust
+let error_frequency = log_lines
+    .filter(|line| line.contains("ERROR"))
+    .map(|line| extract_error_code(line))
+    .fold(HashMap::new(), |mut map, code| {
+        *map.entry(code).or_insert(0) += 1;
+        map
+    });
+#+END_SRC
+
+** Network Packet Processing
+#+BEGIN_SRC rust
+let packet_stream = receiver
+    .into_iter()
+    .batching(|iter| {
+        // Group packets by session
+        let mut batch = Vec::new();
+        while let Some(packet) = iter.next() {
+            batch.push(packet);
+            if packet.is_end_of_session() {
+                return Some(batch);
+            }
+        }
+        None
+    })
+    .map(|session| process_session(session));
+#+END_SRC
+
+* Common Pitfalls
+
+** Consuming vs Borrowing
+#+BEGIN_SRC rust
+// Wrong: Consumes vector
+let sum: i32 = vec.into_iter().sum(); 
+// vec is no longer usable!
+
+// Right: Borrows vector
+let sum: i32 = vec.iter().sum();
+// vec is still usable
+#+END_SRC
+
+** Iterator Invalidation
+#+BEGIN_SRC rust
+// Wrong: Modifying while iterating
+for item in &mut vec {
+    if should_duplicate(item) {
+        vec.push(item.clone()); // PANIC!
+    }
+}
+
+// Right: Collect modifications first
+let to_add: Vec<_> = vec.iter()
+    .filter(|item| should_duplicate(item))
+    .cloned()
+    .collect();
+vec.extend(to_add);
+#+END_SRC
+
+* Discussion Topics
+
+- Favorite iterator adapter combinations?
+- Stream vs Iterator trade-offs?
+- Performance gotchas?
+- Missing adapters in std?
+
+---
+
+*Priority:* HIGH - Core to idiomatic Rust

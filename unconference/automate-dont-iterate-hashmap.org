@@ -1,0 +1,305 @@
+#+TITLE: Automate "Don't Iterate That HashMap" Code Review
+#+FACILITATOR: Dan J @ComputerDruid
+#+EMAIL: computerdruid@gmail.com
+#+TAGS: linting code-review hashmaps determinism
+#+OPTIONS: toc:2 num:t
+
+* Session Overview
+
+Iterating hashmaps yields elements in a nondeterministic order, often leading to bugs. "Don't iterate hashmaps" is a common code review comment, although the actual rules are more nuanced. Let's explore those rules and how to automatically lint them.
+
+** The Problem
+- HashMap iteration order is random
+- Causes non-reproducible behavior
+- Breaks tests intermittently
+- Makes debugging difficult
+
+* When HashMap Iteration Causes Problems
+
+** Bad: Non-deterministic Output
+#+BEGIN_SRC rust
+// BUG: Output changes between runs!
+fn print_config(config: &HashMap<String, String>) {
+    for (key, value) in config {
+        println!("{} = {}", key, value);
+    }
+}
+
+// Output Run 1:
+// database_url = postgres://localhost
+// port = 8080
+// debug = true
+
+// Output Run 2:
+// port = 8080
+// debug = true
+// database_url = postgres://localhost
+#+END_SRC
+
+** Bad: Non-deterministic Serialization
+#+BEGIN_SRC rust
+// BUG: JSON output differs between runs
+fn to_json(data: &HashMap<String, Value>) -> String {
+    let mut result = String::from("{");
+    for (i, (k, v)) in data.iter().enumerate() {
+        if i > 0 { result.push(','); }
+        result.push_str(&format!("\"{}\":{}", k, v));
+    }
+    result.push('}');
+    result
+}
+#+END_SRC
+
+** Bad: Test Flakiness
+#+BEGIN_SRC rust
+#[test]
+fn test_process_items() {
+    let mut items = HashMap::new();
+    items.insert("a", 1);
+    items.insert("b", 2);
+    
+    let result: Vec<_> = items.iter().map(|(k, v)| format!("{}{}", k, v)).collect();
+    assert_eq!(result, vec!["a1", "b2"]); // FLAKY!
+}
+#+END_SRC
+
+* When HashMap Iteration is OK
+
+** OK: Order Doesn't Matter
+#+BEGIN_SRC rust
+// OK: Just checking existence
+fn has_any_errors(results: &HashMap<String, Result<(), Error>>) -> bool {
+    results.values().any(|r| r.is_err())
+}
+
+// OK: Aggregating values
+fn sum_values(counts: &HashMap<String, u32>) -> u32 {
+    counts.values().sum()
+}
+#+END_SRC
+
+** OK: Explicitly Sorted After
+#+BEGIN_SRC rust
+// OK: Sorting makes it deterministic
+fn sorted_keys(map: &HashMap<String, Value>) -> Vec<String> {
+    let mut keys: Vec<_> = map.keys().cloned().collect();
+    keys.sort();
+    keys
+}
+#+END_SRC
+
+* Proposed Lint Rules
+
+** Rule 1: Direct Display/Debug
+#+BEGIN_SRC rust
+// LINT: HashMap in Display/Debug without sorting
+impl fmt::Display for Config {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // BAD: Non-deterministic output
+        for (k, v) in &self.settings {
+            writeln!(f, "{}: {}", k, v)?;
+        }
+        Ok(())
+    }
+}
+
+// FIXED:
+impl fmt::Display for Config {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut sorted: Vec<_> = self.settings.iter().collect();
+        sorted.sort_by_key(|(k, _)| k.as_str());
+        for (k, v) in sorted {
+            writeln!(f, "{}: {}", k, v)?;
+        }
+        Ok(())
+    }
+}
+#+END_SRC
+
+** Rule 2: Serialization
+#+BEGIN_SRC rust
+// LINT: HashMap serialization without determinism
+fn serialize(map: &HashMap<String, String>) -> Vec<u8> {
+    let mut buf = Vec::new();
+    for (k, v) in map { // LINT!
+        buf.extend(k.as_bytes());
+        buf.push(0);
+        buf.extend(v.as_bytes());
+        buf.push(0);
+    }
+    buf
+}
+
+// FIXED: Use BTreeMap or sort
+fn serialize(map: &HashMap<String, String>) -> Vec<u8> {
+    let sorted: BTreeMap<_, _> = map.iter().collect();
+    // ... serialize sorted
+}
+#+END_SRC
+
+** Rule 3: Test Assertions
+#+BEGIN_SRC rust
+// LINT: Comparing collected HashMap iteration
+#[test]
+fn test_something() {
+    let map = create_map();
+    let items: Vec<_> = map.iter().collect(); // LINT!
+    assert_eq!(items, expected);
+}
+
+// FIXED:
+#[test]
+fn test_something() {
+    let map = create_map();
+    let mut items: Vec<_> = map.iter().collect();
+    items.sort_by_key(|(k, _)| *k);
+    assert_eq!(items, expected);
+}
+#+END_SRC
+
+* Implementing the Lint
+
+** Clippy Lint Implementation
+#+BEGIN_SRC rust
+use rustc_lint::{LateContext, LateLintPass};
+use rustc_hir as hir;
+
+declare_clippy_lint! {
+    pub NONDETERMINISTIC_HASHMAP_ITERATION,
+    correctness,
+    "iterating HashMap without ensuring deterministic order"
+}
+
+impl<'tcx> LateLintPass<'tcx> for HashMapIterationLint {
+    fn check_expr(&mut self, cx: &LateContext<'tcx>, expr: &'tcx hir::Expr<'_>) {
+        if let hir::ExprKind::MethodCall(method, receiver, args, _) = expr.kind {
+            if is_hashmap_type(cx, receiver) && is_iteration_method(method) {
+                // Check if result is used in determinism-sensitive context
+                if is_determinism_sensitive(cx, expr) {
+                    span_lint_and_help(
+                        cx,
+                        NONDETERMINISTIC_HASHMAP_ITERATION,
+                        expr.span,
+                        "HashMap iteration may be non-deterministic",
+                        None,
+                        "consider using BTreeMap or sorting the results",
+                    );
+                }
+            }
+        }
+    }
+}
+
+fn is_determinism_sensitive(cx: &LateContext, expr: &hir::Expr) -> bool {
+    // Check if in Display/Debug impl
+    // Check if in serialization code
+    // Check if in test assertion
+    // Check if result is printed/written
+    true // Simplified
+}
+#+END_SRC
+
+** Configuration
+#+BEGIN_SRC toml
+# clippy.toml
+allow-hashmap-iteration-in = [
+    "tests/*",  # Allow in test utilities
+    "benches/*", # Performance testing
+]
+
+deterministic-contexts = [
+    "Display",
+    "Debug",
+    "Serialize",
+    "to_json",
+    "to_string",
+]
+#+END_SRC
+
+* Alternative Solutions
+
+** Use BTreeMap
+#+BEGIN_SRC rust
+// Always deterministic iteration
+use std::collections::BTreeMap;
+
+let mut map = BTreeMap::new();
+map.insert("b", 2);
+map.insert("a", 1);
+
+// Always iterates as "a" then "b"
+for (k, v) in &map {
+    println!("{}: {}", k, v);
+}
+#+END_SRC
+
+** IndexMap for Insertion Order
+#+BEGIN_SRC rust
+use indexmap::IndexMap;
+
+let mut map = IndexMap::new();
+map.insert("first", 1);
+map.insert("second", 2);
+
+// Iterates in insertion order
+for (k, v) in &map {
+    println!("{}: {}", k, v); // Always "first: 1" then "second: 2"
+}
+#+END_SRC
+
+** Custom Wrapper
+#+BEGIN_SRC rust
+struct DeterministicMap<K: Ord, V> {
+    inner: HashMap<K, V>,
+}
+
+impl<K: Ord + Clone, V: Clone> DeterministicMap<K, V> {
+    pub fn iter_sorted(&self) -> impl Iterator<Item = (&K, &V)> {
+        let mut items: Vec<_> = self.inner.iter().collect();
+        items.sort_by_key(|(k, _)| (*k).clone());
+        items.into_iter()
+    }
+}
+#+END_SRC
+
+* Real-World Examples
+
+** Bug: Snapshot Tests
+#+BEGIN_SRC rust
+// This caused flaky snapshot tests
+fn generate_config() -> String {
+    let mut config = HashMap::new();
+    config.insert("feature_a", true);
+    config.insert("feature_b", false);
+    
+    format!("{:?}", config) // Non-deterministic!
+}
+
+// Fixed:
+fn generate_config() -> String {
+    let config: BTreeMap<_, _> = [
+        ("feature_a", true),
+        ("feature_b", false),
+    ].into();
+    
+    format!("{:?}", config) // Deterministic
+}
+#+END_SRC
+
+** Bug: Network Protocol
+#+BEGIN_SRC rust
+// This caused protocol incompatibility
+fn encode_headers(headers: &HashMap<String, String>) -> Vec<u8> {
+    let mut encoded = Vec::new();
+    for (name, value) in headers {
+        // Order matters for HTTP/2 HPACK encoding!
+        encoded.extend(encode_string(name));
+        encoded.extend(encode_string(value));
+    }
+    encoded
+}
+#+END_SRC
+
+---
+
+*Priority:* HIGH - Prevents common source of bugs
